@@ -592,18 +592,21 @@ static unsigned fat_table_allocate(struct fat_context* fat, unsigned cluster)
 	return i;
 }
 
-static int fat_cluster_read(struct fat_context* fat, unsigned cluster, void* data)
+static unsigned fat_cluster_to_sector(struct fat_context* fat, unsigned cluster)
 {
 	assert(cluster >= 2 && cluster < fat->info.cluster_num + 2);
 
-	return disk_read(fat->h, fat->h_pos + fat->info.data_pos + (cluster - 2) * fat->info.cluster_size, data, fat->info.cluster_size);
+	return fat->info.data_pos + (cluster - 2) * fat->info.cluster_size;
+}
+
+static int fat_cluster_read(struct fat_context* fat, unsigned cluster, void* data)
+{
+	return disk_read(fat->h, fat->h_pos + fat_cluster_to_sector(fat, cluster), data, fat->info.cluster_size);
 }
 
 static int fat_cluster_write(struct fat_context* fat, unsigned cluster, const void* data)
 {
-	assert(cluster >= 2 && cluster < fat->info.cluster_num + 2);
-
-	return disk_write(fat->h, fat->h_pos + fat->info.data_pos + (cluster - 2) * fat->info.cluster_size, data, fat->info.cluster_size);
+	return disk_write(fat->h, fat->h_pos + fat_cluster_to_sector(fat, cluster), data, fat->info.cluster_size);
 }
 
 /**
@@ -813,6 +816,70 @@ err_close:
 	fclose(f);
 err:
 	return -1;
+}
+
+/**
+ * Get the cluster chain to the end.
+ * \param fat FAT context.
+ * \param cluster First cluster. Returned also in cluster_map[0].
+ * \param cluster_map Vector to store the cluster numbers.
+ * \param cluster_max Max size of the vector.
+ * \return Elements in the vector or negative on error.
+ */
+int fat_cluster_chain(struct fat_context* fat, unsigned cluster, unsigned* cluster_map, unsigned cluster_max)
+{
+	unsigned mac;
+
+	mac = 0;
+
+	while (cluster != FAT_TABLE_EOC) {
+		if (cluster == FAT_TABLE_FREE || cluster == FAT_TABLE_BAD)
+			return -1;
+
+		if (mac >= cluster_max)
+			return -1;
+
+		cluster_map[mac] = cluster;
+		++mac;
+
+		cluster = fat_table_get(fat, cluster);
+	}
+
+	return mac;
+}
+
+/**
+ * Get the cluster chain to the end.
+ * \param fat FAT context.
+ * \param cluster First cluster.
+ * \param sector_map Vector to store the sector numbers.
+ * \param sector_max Max size of the vector.
+ * \return Elements in the vector or negative on error.
+ */
+int fat_sector_chain(struct fat_context* fat, unsigned cluster, unsigned* sector_map, unsigned sector_max)
+{
+	unsigned mac;
+
+	mac = 0;
+
+	while (cluster != FAT_TABLE_EOC) {
+		unsigned i;
+
+		if (cluster == FAT_TABLE_FREE || cluster == FAT_TABLE_BAD)
+			return -1;
+
+		for(i=0;i<fat->info.cluster_size;++i) {
+			if (mac >= sector_max)
+				return -1;
+
+			sector_map[mac] = fat_cluster_to_sector(fat, cluster) + i;
+			++mac;
+		}
+
+		cluster = fat_table_get(fat, cluster);
+	}
+
+	return mac;
 }
 
 static void fat_date(unsigned char* w, time_t t)

@@ -29,6 +29,9 @@ extern "C" {
 #include "config.h" /* Use " to include first in the same directory of this file */
 #endif
 
+/* for pread/pwrite */
+#define _XOPEN_SOURCE 500
+
 /***************************************************************************/
 /* Config */
 

@@ -1,5 +1,5 @@
-Name
-	makebootfat - create bootable FAT filesystems
+Name{number}
+	makebootfat - Makebootfat Bootable FAT Disk Creation
 
 Synopsis
 	:makebootfat [options] IMAGE

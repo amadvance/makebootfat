@@ -629,7 +629,9 @@ struct disk_handle* disk_find(void)
 	int i;
 	char device[64];
 	int count;
+	int eaccess;
 
+	eaccess = 0;
 	count = 0;
 	for(i=0;i<16;++i) {
 		int r;
@@ -643,6 +645,8 @@ struct disk_handle* disk_find(void)
 
 		r = disk_usbmassstorage(buf, &host, &channel, &id, &lun);
 		if (r != 0) {
+			if (errno == EACCES)
+				eaccess = 1;
 			continue;
 		}
 
@@ -656,7 +660,11 @@ struct disk_handle* disk_find(void)
 	}
 
 	if (count == 0) {
-		error_set("Please insert one usb disk.");
+		if (eaccess) {
+			error_set("Please insert one usb disk and ensure to be root.");
+		} else {
+			error_set("Please insert one usb disk.");
+		}
 		return 0;
 	}
 

@@ -24,7 +24,7 @@
 #include "part.h"
 #include "error.h"
 
-int fatboot_format(struct fat_context* fat, const unsigned char* boot12, const unsigned char* boot16, const unsigned char* boot32, const char* oem, const char* label, unsigned serial, const struct disk_geometry* geometry, int syslinux)
+int fatboot_format(struct fat_context* fat, const unsigned char* boot12, const unsigned char* boot16, const unsigned char* boot32, const char* oem, const char* label, unsigned serial, const struct disk_geometry* geometry, int syslinux2)
 {
 	unsigned sector_per_cluster;
 	int r;
@@ -45,8 +45,8 @@ int fatboot_format(struct fat_context* fat, const unsigned char* boot12, const u
 
 	r = -1;
 
-	/* syslinux doesn't support 64 and 128 sectors per cluster */
-	while (sector_per_cluster <= 32 || (!syslinux && sector_per_cluster <= 128)) {
+	/* syslinux 2.xx doesn't support 64 and 128 sectors per cluster */
+	while (sector_per_cluster <= 32 || (!syslinux2 && sector_per_cluster <= 128)) {
 
 		if (boot12 != 0) {
 			r = fat_format(fat, fat->h_size, 12, sector_per_cluster, oem, label, serial, geometry);
@@ -65,8 +65,8 @@ int fatboot_format(struct fat_context* fat, const unsigned char* boot12, const u
 		}
 
 		if (boot32 != 0) {
-			/* syslinux supports only fat12 and fat16. It doesn't support fat32 */
-			if (!syslinux) {
+			/* syslinux 2.xx supports only fat12 and fat16. It doesn't support fat32 */
+			if (!syslinux2) {
 				r = fat_format(fat, fat->h_size, 32, sector_per_cluster, oem, label, serial, geometry);
 				if (r < 0)
 					return -1;
@@ -104,6 +104,95 @@ int fatboot_format(struct fat_context* fat, const unsigned char* boot12, const u
 
 	if (disk_write(fat->h, fat->h_pos, fat->tmp, 1) != 0)
 		return -1;
+
+	return 0;
+}
+
+/**
+ * Update the syslinux 3.xx boot sector and ldlinux.sys file.
+ * \param sec_map Vector of sector numbers for the ldlinux.sys file. 0 is the first sector of the partition.
+ * \param sec_mac Number of sectors in the vector.
+ * \param size Real size of the ldlinux.sys file.
+ */
+int fatboot_syslinux3(struct fat_context* fat, unsigned* sec_map, unsigned sec_mac, unsigned size)
+{
+	unsigned char tmp[SECTOR_SIZE];
+	unsigned char* data;
+	unsigned i, p;
+	unsigned csum;
+	unsigned csum_mac;
+
+	if (sec_mac > 65) {
+		error_set("Invalid ldlinux.sys. Too big.");
+		return -1;
+	}
+
+	/* read the boot sector */
+	if (disk_read(fat->h, fat->h_pos, tmp, 1) != 0)
+		return -1;
+
+	/* check the signature */
+	if (le_uint32_read(tmp + 0x1F8) != 0xDEADBEEF) {
+		error_set("Invalid ldlinux.bss. Missing tag word.");
+		return -1;
+	}
+
+	/* update the index of the first loader sector */
+	le_uint32_write(tmp + 0x1F8, sec_map[0]);
+
+	/* update the boot sector */
+	if (disk_write(fat->h, fat->h_pos, tmp, 1) != 0)
+		return -1;
+
+	data = malloc(sec_mac * SECTOR_SIZE);
+	if (!data) {
+		error_set("Low memory.");
+		return -1;
+	}
+
+	/* read all the ldlinux.sys sectors */
+	for(i=0;i<sec_mac;++i) {
+		if (disk_read(fat->h, fat->h_pos + sec_map[i], data + i*SECTOR_SIZE, 1) != 0)
+			return -1;
+	}
+
+	/* search for 0x3eb202fe to find the patch area */
+	for(i=0;i<SECTOR_SIZE;i+=4)
+		if (le_uint32_read(data + i) == 0x3eb202fe)
+			break;
+	if (i==SECTOR_SIZE) {
+		error_set("Invalid ldlinux.sys. Missing tag word.");
+		return -1;
+	}
+
+	/* start of the patch area */
+	p = i + 8;
+
+	csum_mac = size / 4;
+
+	le_uint16_write(data + p, csum_mac); /* size in complete dwords */
+	le_uint16_write(data + p + 2, sec_mac - 1); /* number of sectors without the first one */
+
+	/* clear all */
+	memset(data + p + 8, 0, 64*4);
+
+	for(i=1;i<sec_mac;++i) {
+		le_uint32_write(data + p + 8 + (i-1) * 4, sec_map[i]);
+	}
+
+	le_uint32_write(data + p + 4, 0); /* zero the checksum */
+
+	csum = 0x3eb202fe;
+	for(i=0;i<csum_mac;++i)
+		csum -= le_uint32_read(data + i*4);
+
+	le_uint32_write(data + p + 4, csum); /* new checksum */
+
+	/* rewrite only the first sector */
+	if (disk_write(fat->h, fat->h_pos + sec_map[0], data, 1) != 0)
+		return -1;
+
+	free(data);
 
 	return 0;
 }
@@ -187,7 +276,7 @@ int fatboot_copy(struct fat_context* fat, unsigned cluster, const char* image, s
 	return 0;
 }
 
-int fatboot_copytoroot(struct fat_context* fat, const char* file)
+int fatboot_copytoroot(struct fat_context* fat, const char* file, unsigned* cluster, unsigned* size)
 {
 	struct stat st;
 	unsigned file_cluster;
@@ -220,6 +309,10 @@ int fatboot_copytoroot(struct fat_context* fat, const char* file)
 	if (fat_entry_add(fat, 0, name, file_cluster, file_size, file_attrib, file_time) != 0)
 		return -1;
 
+	/* report info */
+	*cluster = file_cluster;
+	*size = file_size;
+
 	return 0;
 }
 
@@ -238,7 +331,8 @@ void usage() {
 	printf("  " SWITCH_GETOPT_LONG("-m, --mbr FILE     ", "-m") "  Select the mbr sector image\n");
 	printf("  " SWITCH_GETOPT_LONG("-c, --copy FILE    ", "-c") "  Copy a file in the root directory\n");
 	printf("  " SWITCH_GETOPT_LONG("-x, --exclude FILE ", "-x") "  Exclude files\n");
-	printf("  " SWITCH_GETOPT_LONG("-X, --syslinux     ", "-X") "  Enforce syslinux FAT limitations\n");
+	printf("  " SWITCH_GETOPT_LONG("-X, --syslinux2    ", "-X") "  Enforce syslinux 2.xx limitations\n");
+	printf("  " SWITCH_GETOPT_LONG("-Y, --syslinux3    ", "-Y") "  Enforce syslinux 3.xx limitations\n");
 	printf("  " SWITCH_GETOPT_LONG("-F, --mbrfat       ", "-F") "  Change the MBR to imitate a FAT boot sector\n");
 	printf("  " SWITCH_GETOPT_LONG("-L, --label LABEL  ", "-L") "  Volume label\n");
 	printf("  " SWITCH_GETOPT_LONG("-O, --oem OEM      ", "-O") "  Volume oem\n");
@@ -266,7 +360,8 @@ struct option long_options[] = {
 	{"copy", 1, 0, 'c'},
 	{"exclude", 1, 0, 'x'},
 
-	{"syslinux", 0, 0, 'X'},
+	{"syslinux2", 0, 0, 'X'},
+	{"syslinux3", 0, 0, 'Y'},
 	{"partition", 0, 0, 'P'},
 	{"disk", 0, 0, 'D'},
 	{"mbrfat", 0, 0, 'F'},
@@ -280,7 +375,7 @@ struct option long_options[] = {
 };
 #endif
 
-#define OPTIONS "L:O:S:E:o:ab:1:2:3:m:c:x:XPDFvihV"
+#define OPTIONS "L:O:S:E:o:ab:1:2:3:m:c:x:XYPDFvihV"
 
 void string_insert(struct string_list** list, const char* s)
 {
@@ -355,13 +450,18 @@ int main(int argc, char* argv[])
 	unsigned char boot32[SECTOR_SIZE];
 	unsigned char mbr[SECTOR_SIZE];
 	const char* output;
-	int syslinux;
+	int syslinux2;
+	int syslinux3;
 	int mbrfat;
 	int verbose;
 	int verbosefile;
 	int only_partition;
 	int only_disk;
 	int drive;
+	const unsigned syslinux3_sector_max = 65;
+	unsigned syslinux3_sector_map[syslinux3_sector_max];
+	int syslinux3_sector_mac;
+	unsigned syslinux3_size;
 
 	exclude_list = 0;
 	copy_list = 0;
@@ -373,14 +473,17 @@ int main(int argc, char* argv[])
 	file_boot32 = 0;
 	file_mbr = 0;
 	output = 0;
-	syslinux = 0;
+	syslinux2 = 0;
+	syslinux3 = 0;
 	mbrfat = 0;
 	verbose = 0;
 	verbosefile = 0;
 	only_partition = 0;
 	only_disk = 0;
 	drive = -1;
-	
+	syslinux3_sector_mac = 0;
+	syslinux3_size = 0;
+
 	opterr = 0;
 
 	while ((c =
@@ -427,7 +530,10 @@ int main(int argc, char* argv[])
 			string_insert(&exclude_list, optarg);
 			break;
 		case 'X' :
-			syslinux = 1;
+			syslinux2 = 1;
+			break;
+		case 'Y' :
+			syslinux3 = 1;
 			break;
 		case 'P' :
 			only_partition = 1;
@@ -527,7 +633,7 @@ int main(int argc, char* argv[])
 			goto err_invalidate;
 
 		size = h->geometry.size - 1;
-		if (syslinux && size > 2097088)
+		if (syslinux2 && size > 2097088)
 			size = 2097088; /* maximum size of a fat 16 with 32 sectors per cluster */
 
 		fat = fat_open(h, 1, size, &h->geometry);
@@ -535,7 +641,7 @@ int main(int argc, char* argv[])
 		unsigned size;
 
 		size = h->geometry.size;
-		if (syslinux && size > 2097088)
+		if (syslinux2 && size > 2097088)
 			size = 2097088; /* maximum size of a fat 16 with 32 sectors per cluster */
 
 		fat = fat_open(h, 0, size, &h->geometry);
@@ -550,7 +656,7 @@ int main(int argc, char* argv[])
 		printf("bios_drive %s\n", (h->geometry.drive & 0x80) != 0 ? "HDD" : "FDD");
 	}
 
-	r = fatboot_format(fat, file_boot12 ? boot12 : 0, file_boot16 ? boot16 : 0, file_boot32 ? boot32 : 0, oem, label, serial, &h->geometry, syslinux);
+	r = fatboot_format(fat, file_boot12 ? boot12 : 0, file_boot16 ? boot16 : 0, file_boot32 ? boot32 : 0, oem, label, serial, &h->geometry, syslinux2);
 	if (r != 0) 
 		goto err_invalidate;
 
@@ -584,18 +690,50 @@ int main(int argc, char* argv[])
 
 	s = copy_list;
 	while (s) {
+		unsigned root_cluster;
+		unsigned root_size;
+		unsigned l;
+
 		if (verbosefile)
 			printf("%s\n", s->path);
 
-		r = fatboot_copytoroot(fat, s->path);
-		if (r != 0) 
+		r = fatboot_copytoroot(fat, s->path, &root_cluster, &root_size);
+		if (r != 0)
 			goto err_invalidate;
+
+		/* detect the syslinux loader */
+		if (syslinux3) {
+			l = strlen(s->path);
+			if (l>=11 && strcmp("ldlinux.sys", s->path + l - 11) == 0) {
+				if (syslinux3_sector_mac != 0) {
+					error_set("Multiple ldlinux.sys.");
+					goto err_invalidate;
+				}
+				syslinux3_size = root_size;
+				syslinux3_sector_mac = fat_sector_chain(fat, root_cluster, syslinux3_sector_map, syslinux3_sector_max);
+			}
+		}
+
 		s = s->next;
 	}
 
 	r = fatboot_copy(fat, 0, argv[optind], exclude_list, verbosefile);
 	if (r != 0) 
 		goto err_invalidate;
+
+	if (syslinux3) {
+		if (syslinux3_sector_mac == 0) {
+			error_set("Missing ldlinux.sys.");
+			goto err_invalidate;
+		}
+		if (syslinux3_sector_mac < 0) {
+			error_set("Invalid ldlinux.sys. Too big.");
+			goto err_invalidate;
+		}
+		if (fatboot_syslinux3(fat, syslinux3_sector_map, syslinux3_sector_mac, syslinux3_size) != 0) {
+			goto err_invalidate;
+		}
+	}
 
 	r = fat_close(fat);
 	if (r != 0) 

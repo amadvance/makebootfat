@@ -1,5 +1,5 @@
 Name
-	authors - The makebootfat Authors
+	authors - makebootfat Authors
 
 Authors
 	* Andrea Mazzoleni
