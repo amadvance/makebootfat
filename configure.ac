@@ -5,7 +5,7 @@ AC_CONFIG_SRCDIR([makebootfat.c])
 AC_CONFIG_HEADER([config.h])
 AC_CANONICAL_HOST
 AC_PREREQ(2.57)
-AC_COPYRIGHT([Copyright 2004 Andrea Mazzoleni])
+AC_COPYRIGHT([Copyright 2005 Andrea Mazzoleni])
 
 # Checks for programs.
 AC_PROG_CC

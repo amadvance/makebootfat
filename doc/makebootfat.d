@@ -61,15 +61,21 @@ Options
 		IMAGE directory to copy. The path must be specified using
 		the same format used in the IMAGE directory specification.
 
-	-X, --syslinux
-		Enforce the syslinux FAT limitations. Syslinux doesn't
-		support FAT32 at all, and FAT16 with 64 and 128 sectors
-		per cluster formats.
+	-X, --syslinux2
+		Enforce the syslinux 2.xx FAT limitations. Syslinux
+		2.xx doesn't support FAT32 at all, and FAT16 with
+		64 and 128 sectors per cluster formats.
 		This option exclude all the FAT formats not supported
 		by syslinux. Please note that it limits the maximum
 		size of filesystem to 1 GB.
-		Syslinux version 2.20 (and higher) supports all
-		FAT types and doesn't require this option.
+
+	-Y, --syslinux3
+		Enforce the syslinux 3.xx FAT support. Syslinux 3.00
+		supports all the FAT types and sizes but it requires
+		a special customization of the boot sector and of
+		the file `ldlinux.sys'.
+		This option do this customization without the need
+		to use the syslinux installer.
 
 	-P, --partition
 		Ensure to operate on a partition and not on a disk.
@@ -125,8 +131,9 @@ Disks and Partitions Names
 
 Syslinux
 	To make a bootable FAT using syslinux you must use
-	the -X option and copy in the root directory of the disk
-	the files:
+	the -X option for syslinux version 2.xx or the -Y
+	option for syslinux version 3.xx. You must also copy in
+	the root directory of the disk the files:
 
 	ldlinux.sys - The syslinux loader.
 	syslinux.cfg - The syslinux configuration file.
@@ -141,16 +148,11 @@ Syslinux
 	For example:
 
 		:makebootfat -o usb \
-		:	-X \
+		:	-Y \
 		:	-b ldlinux.bss -m mbr.bin \
 		:	-c ldlinux.sys -c syslinux.cfg \
 		:	-c linux -c initrd.img \
 		:	image
-
-	To make a bootable FAT using syslinux 2.20 (and higher)
-	you must use the syslinux included tools because the
-	ldlinux.* files need a special customization not yet
-	supported by makebootfat.
 
 Loadlin and FreeDOS
 	To make a bootable FAT using loadlin and FreeDOS you must copy
@@ -212,7 +214,7 @@ Multi Standard USB Booting
 	For example to create a syslinux image:
 
 		:makebootfat -o usb \
-		:	-X \
+		:	-Y \
 		:	-b ldlinux.bss -m mbrfat.bin -F \
 		:	-c ldlinux.sys -c syslinux.cfg \
 		:	-c linux -c initrd.img \
@@ -244,7 +246,7 @@ Exclusion
 		:	image
 
 Copyright
-	This file is Copyright (C) 2004 Andrea Mazzoleni
+	This file is Copyright (C) 2004, 2005 Andrea Mazzoleni
 
 See Also
 	syslinux(1), mkdosfs(1), dosfsck(1)

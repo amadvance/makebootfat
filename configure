@@ -6,7 +6,7 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# Copyright 2004 Andrea Mazzoleni
+# Copyright 2005 Andrea Mazzoleni
 ## --------------------- ##
 ## M4sh Initialization.  ##
 ## --------------------- ##
@@ -969,7 +969,7 @@ Copyright (C) 2003 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-Copyright 2004 Andrea Mazzoleni
+Copyright 2005 Andrea Mazzoleni
 _ACEOF
   exit 0
 fi
