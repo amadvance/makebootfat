@@ -544,9 +544,9 @@ int main(int argc, char* argv[])
 		goto err_invalidate;
 
 	if (verbose) {
-		printf("device_start %d\n", h->geometry.start);
-		printf("device_size %d\n", h->geometry.size);
-		printf("device_geometry %d/%d/%d\n", h->geometry.cylinders, h->geometry.heads, h->geometry.sectors);
+		printf("device_start %d [sectors]\n", h->geometry.start);
+		printf("device_size %d [sectors]\n", h->geometry.size);
+		printf("device_geometry %d/%d/%d [cylinders/heads/sectors]\n", h->geometry.cylinders, h->geometry.heads, h->geometry.sectors);
 		printf("bios_drive %s\n", (h->geometry.drive & 0x80) != 0 ? "HDD" : "FDD");
 	}
 
@@ -555,8 +555,8 @@ int main(int argc, char* argv[])
 		goto err_invalidate;
 
 	if (verbose) {
-		printf("fat_start %d\n", fat->h_pos + h->geometry.start);
-		printf("fat_size %d\n", fat->h_size);
+		printf("fat_start %d [sectors]\n", fat->h_pos + h->geometry.start);
+		printf("fat_size %d [sectors]\n", fat->h_size);
 		printf("fat_bit %d\n", fat->info.fat_bit);
 		printf("fat_sectorpercluster %d\n", fat->info.cluster_size);
 	}
