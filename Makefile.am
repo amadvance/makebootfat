@@ -21,6 +21,7 @@ clean-local:
 	rm -f makebootfat.exe
 	rm -f mbrfat.lst
 	rm -f check.raw
+	rm -f -r check
 
 maintainer-clean-local:
 	rm -f README AUTHORS HISTORY INSTALL doc/copying.txt
@@ -40,17 +41,21 @@ EXTRA_DIST = \
 	test/test.raw test/blank.raw \
 	test/ldlinux.bss test/ldlinux.sys \
 	test/test.txt \
-	test/image/dir/subtest.txt
+	test/subtest.txt
 
 mbrfat.bin: mbrfat.asm
 	nasm -O99 -f bin -l mbrfat.lst -o mbrfat.bin mbrfat.asm
 
 check-local:
 	rm -f check.raw
+	rm -f -r check
+	mkdir check
+	mkdir check/dir
+	cp $(srcdir)/test/subtest.txt check/dir
 	cat $(srcdir)/test/blank.raw > check.raw
 	./makebootfat -v -o check.raw -S 12345678 -t 12345678 -b $(srcdir)/test/ldlinux.bss -m $(srcdir)/mbrfat.bin \
 		-F -c $(srcdir)/test/ldlinux.sys -c $(srcdir)/test/test.txt -O OEM12345678 -L LABEL123456 -Z -Y \
-		$(srcdir)/test/image
+		check
 	cmp check.raw $(srcdir)/test/test.raw
 	echo Success!
 
