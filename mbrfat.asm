@@ -29,16 +29,11 @@
 ;
 ; mbr.asm
 ;
-; Simple Master Boot Record, including support for EBIOS extensions.
+; Simple Master Boot Record
 ; 
 ; The MBR lives in front of the boot sector, and is responsible for
-; loading the boot sector of the active partition.  The EBIOS support
-; is needed if the active partition starts beyond cylinder 1024.
+; loading the boot sector of the active partition.
 ; 
-; This MBR determines all geometry info at runtime.  It uses only the
-; linear block field in the partition table.  It does, however, pass
-; the partition table information unchanged to the target OS.
-;
 ; This MBR should be "8086-clean", i.e. not require a 386.
 ;
 
@@ -95,28 +90,72 @@ next:
 		mov [DriveNo], dl
 
 ;
-; Startup
+; Print FDD or HDD
 ;
-		mov si,startup_msg
-.startuploop:
-		lodsb
-		and al,al
-		jz .startupnow
-		mov ah,0Eh			; TTY output
-		mov bh,[BIOS_page]		; Current page
-		mov bl,07h
-		int 10h
-		jmp short .startuploop
-.startupnow:
+		mov si, hdd_msg
+		mov dl, [DriveNo]
+		and dl, dl
+		js .harddisk
+		mov si, fdd_msg
+.harddisk
+		call print_msg
+
+;
+; Print Cylinders/Heads/Sectors
+;
+		mov dl, [DriveNo]
+		mov ah,08h
+
+		int 13h
+		jc .no_driveparm
+		and ah,ah
+		jnz .no_driveparm
+
+		mov bx,cx
+		and bx,3fh
+		push bx
+
+		mov dl, dh
+		xor dh, dh
+		inc dx
+		push dx
+
+		mov bl,ch
+		rol cl,1
+		rol cl,1
+		and cl,3h
+		mov bh,cl
+		push bx
+
+		pop si
+		call print_num
+
+		mov si,sep_msg
+		call print_msg
+
+		pop si
+		call print_num
+
+		mov si,sep_msg
+		call print_msg
+
+		pop si
+		call print_num
+
+.no_driveparm:
+		mov si, crlf_msg
+		call print_msg
 
 ;
 ; Load the boot sector using CHS.
 ;
-		; The boot sector of AdvanceCD
-		; is always at 0:0:2 (Cylinder:Head:Sector)
+		; The boot sector of disks created with makebootfat
+		; is always at 0/0/2 (Cylinder/Head/Sector)
 		mov cx, 2			; Sector 2, Cylinder 0
 		mov dh, 0			; Head 0
 		mov dl, [DriveNo]		; dl Drive Number
+		mov ax,ds
+		mov es,ax
 		mov bx,7C00h
 		mov ax,0201h			; Read one sector
 
@@ -132,8 +171,9 @@ next:
 ;
 ; Run it
 ;
-		; DS:SI -> active partition table entry, always the
-		; first one in AdvanceCD
+		; DS:SI -> active partition table entry
+		; it's always the first one on disks created
+		; with makebootfat
 		mov si, PartitionTable
 
 		; DL -> Drive Number
@@ -145,23 +185,59 @@ next:
 						; (Probably not neecessary, but
 						; there is plenty of space.)
 
-missing_os:
-		mov si,missing_os_msg
-		jmp short die
-disk_error:
-		mov si,bad_disk_msg
-die:
-.msgloop:
+print_msg:
 		lodsb
 		and al,al
-		jz .now
-		mov ah,0Eh			; TTY output
-		mov bh,[BIOS_page]		; Current page
+		jz .print_end
+		mov ah,0Eh
+		mov bh,[BIOS_page]
 		mov bl,07h
 		int 10h
-		jmp short .msgloop
-.now:
-		jmp short .now
+		jmp short print_msg
+.print_end:
+		ret
+
+print_num:
+		mov ax,si
+		mov bx,10
+		xor cx,cx
+
+.print_num_loop:
+		xor dx,dx
+		div bx
+
+		add dl,'0'
+		push dx
+		inc cx
+
+		and ax, ax
+		jnz .print_num_loop
+
+.print_num_pop:
+		pop ax
+
+		mov ah,0Eh
+		mov bh,[BIOS_page]
+		mov bl,07h
+		int 10h
+
+		dec cx
+		jnz .print_num_pop
+
+		ret
+
+missing_os:
+		mov si,missing_os_msg
+		call print_msg
+		jmp short die
+
+disk_error:
+		mov si,bad_disk_msg
+		call print_msg
+		jmp short die
+
+die:
+		jmp short die
 
 		align 4, db 0			; Begin data area
 
@@ -169,9 +245,12 @@ die:
 DriveNo:	db 0
 
 ; Messages
-startup_msg	db 'AdvanceCD 2.4.0', 13, 10, 0
 missing_os_msg	db 'Invalid boot sector', 13, 10, 0
-bad_disk_msg	db 'Error loading the boot sector', 13, 10, 0
+bad_disk_msg	db 'Disk error'
+crlf_msg	db 13, 10, 0
+fdd_msg		db 'FDD ', 0
+hdd_msg		db 'HDD ', 0
+sep_msg		db '/', 0
 
 ;
 ; Maximum MBR size: 446 bytes; end-of-boot-sector signature also needed.

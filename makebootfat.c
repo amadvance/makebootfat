@@ -547,7 +547,7 @@ int main(int argc, char* argv[])
 		printf("device_start %d\n", h->geometry.start);
 		printf("device_size %d\n", h->geometry.size);
 		printf("device_geometry %d/%d/%d\n", h->geometry.cylinders, h->geometry.heads, h->geometry.sectors);
-		printf("bios_drive %02Xh\n", h->geometry.drive);
+		printf("bios_drive %s\n", (h->geometry.drive & 0x80) != 0 ? "HDD" : "FDD");
 	}
 
 	r = fatboot_format(fat, file_boot12 ? boot12 : 0, file_boot16 ? boot16 : 0, file_boot32 ? boot32 : 0, oem, label, serial, &h->geometry, syslinux);

@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([makebootfat], [1.0], [advancemame.sourceforge.net])
+AC_INIT([makebootfat], [1.1], [advancemame.sourceforge.net])
 AM_INIT_AUTOMAKE([foreign no-dependencies])
 AC_CONFIG_SRCDIR([makebootfat.c])
 AC_CONFIG_HEADER([config.h])
