@@ -89,8 +89,9 @@ The official site of AdvanceCD and makebootfat is:
 
     -Z, --zip
         If possibile force the ZIP-Disk compatibility setting
-        a geometry of 32 sectors and 32 heads. It allows to
-        boot also in USB-ZIP mode.
+        a geometry of 32 sectors and 64 heads. It also uses the
+        4'th partition entry in the partition table.
+        It allows to boot also in USB-ZIP mode.
 
     -P, --partition
         Ensure to operate on a partition and not on a disk.
@@ -233,8 +234,7 @@ of a partition table with only a bootable partition in the
 fourth entry. You can create this type of disk using the -Z option.
 
 Generally these standard are incompatible, but using the -m, -F
-and -Z options you can create a disk compatible with all these
-standards.
+and -Z options you can create a disk compatible with all of these.
 
 To use the -F option, the MBR image specified must follow
 the constrains:

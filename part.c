@@ -137,9 +137,12 @@ int part_fat_setup(unsigned char* mbr, const unsigned char* boot, unsigned bit, 
 	/* increment the number of reserved sector */
 	le_uint16_write(&fat->BPB_RsvdSecCnt, le_uint16_read(&fat->BPB_RsvdSecCnt) + pos);
 
-	/* decrement the number of hidden sector */
-	if (le_uint32_read(&fat->BPB_HiddSec) >= pos)
-		le_uint32_write(&fat->BPB_HiddSec, le_uint32_read(&fat->BPB_HiddSec) - pos);
+	/* set the number of hidden sector */
+	if (le_uint32_read(&fat->BPB_HiddSec) != pos) {
+		error_set("Invalid number of hidden sector in the fat boot sector, it must be %d.", pos);
+		return -1;
+	}
+	le_uint32_write(&fat->BPB_HiddSec, 0);
 
 	/* increment the number of total sectors */
 	if (le_uint32_read(fat->BPB_TotSec32) != 0)

@@ -135,8 +135,9 @@ to use the syslinux installer.
 -Z, --zip
 </strong></td></tr><tr><td>
 If possibile force the ZIP-Disk compatibility setting
-a geometry of 32 sectors and 32 heads. It allows to
-boot also in USB-ZIP mode.
+a geometry of 32 sectors and 64 heads. It also uses the
+4'th partition entry in the partition table.
+It allows to boot also in USB-ZIP mode.
 </td></tr>
 </table>
 <table width="100%" border="0" cellspacing="0" cellpadding="2">
@@ -367,8 +368,7 @@ of a partition table with only a bootable partition in the
 fourth entry. You can create this type of disk using the -Z option.
 <p>
 Generally these standard are incompatible, but using the -m, -F
-and -Z options you can create a disk compatible with all these
-standards.
+and -Z options you can create a disk compatible with all of these.
 <p>
 To use the -F option, the MBR image specified must follow
 the constrains:

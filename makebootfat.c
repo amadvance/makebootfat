@@ -489,6 +489,7 @@ int main(int argc, char* argv[])
 	int syslinux3_sector_mac;
 	unsigned syslinux3_size;
 	unsigned part_entry;
+	unsigned fat_start;
 	struct verbose_context_struct verbose_context;
 	time_t force_time;
 
@@ -652,12 +653,16 @@ int main(int argc, char* argv[])
 			/* A ZIP-Drive requires 32 sectors, 64 heads and the use of the last partition entry */
 			h->geometry.sectors = 32; /* value required by ZIP-Drive */
 			h->geometry.heads = 64; /* value required by ZIP-Drive */
-			part_entry = 3; /* value required by ZIP-Drive */
+			part_entry = 3; /* ZIP-Drive requires to use the last partition entry */
 			h->geometry.cylinders = h->geometry.size / (h->geometry.sectors * h->geometry.heads);
 			/* recompute the size, it may be a little smaller */
 			h->geometry.size = h->geometry.sectors * h->geometry.heads * h->geometry.cylinders;
 		}
 	}
+
+	/* Starts the filesystem at the second track. Required for maximum compatibility. */
+	/* The alternative is to start it immediatially after the mbr (value 1) */
+	fat_start = h->geometry.sectors;
 
 	if (drive != -1) {
 		h->geometry.drive = drive;
@@ -683,11 +688,11 @@ int main(int argc, char* argv[])
 		if (sector_read(mbr, file_mbr) != 0)
 			goto err_invalidate;
 
-		size = h->geometry.size - 1;
+		size = h->geometry.size - fat_start;
 		if (syslinux2 && size > 2097088)
 			size = 2097088; /* maximum size of a fat 16 with 32 sectors per cluster */
 
-		fat = fat_open(h, 1, size, &h->geometry);
+		fat = fat_open(h, fat_start, size, &h->geometry);
 	} else {
 		unsigned size;
 

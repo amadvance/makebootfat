@@ -89,8 +89,9 @@ to use the syslinux installer.
 .TP
 .B \(hyZ, \(hy\(hyzip
 If possibile force the ZIP\(hyDisk compatibility setting
-a geometry of 32 sectors and 32 heads. It allows to
-boot also in USB\(hyZIP mode.
+a geometry of 32 sectors and 64 heads. It also uses the
+4\(cqth partition entry in the partition table.
+It allows to boot also in USB\(hyZIP mode.
 .TP
 .B \(hyP, \(hy\(hypartition
 Ensure to operate on a partition and not on a disk.
@@ -286,8 +287,7 @@ of a partition table with only a bootable partition in the
 fourth entry. You can create this type of disk using the \(hyZ option.
 .PP
 Generally these standard are incompatible, but using the \(hym, \(hyF
-and \(hyZ options you can create a disk compatible with all these
-standards.
+and \(hyZ options you can create a disk compatible with all of these.
 .PP
 To use the \(hyF option, the MBR image specified must follow
 the constrains:
