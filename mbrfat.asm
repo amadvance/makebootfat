@@ -1,6 +1,7 @@
 ; -----------------------------------------------------------------------
 ;   
 ;   Copyright 2003-2004 H. Peter Anvin - All Rights Reserved
+;   Copyright 2004-2005 Andrea Mazzoleni - All Rights Reserved
 ;
 ;   Permission is hereby granted, free of charge, to any person
 ;   obtaining a copy of this software and associated documentation
@@ -94,6 +95,17 @@ _start:		cli
 				
 next:
 		mov [DriveNo], dl		; Drive number stored in DL
+
+;
+; Print FDD/HDD
+;
+		mov si,fdd_msg
+		test dl,80h
+		jz fdddevice
+		mov si,hdd_msg
+fdddevice:
+		call print_message
+
 ;
 ; Check for CHS parameters.  This doesn't work on floppy disks,
 ; but for an MBR we don't care.
@@ -142,6 +154,13 @@ checkpartloop:
 		jne no_ebios
 		test cl,1			; LBA device access
 		jz no_ebios
+
+;
+; Print EBIOS
+;
+		mov si,ebios_msg
+		call print_message
+
 ;
 ; We have EBIOS.  Load the boot sector using LBA.
 ;
@@ -152,12 +171,21 @@ checkpartloop:
 		mov bx,[di+10]
 		mov [si+10],bx
 		mov dl,[DriveNo]
-		mov ah,42h			; Extended Read
+		mov ax,ds			; Some BIOS waste the es value, reload it
+		mov es,ax
+		mov ax,4200h			; Extended Read
 		jmp short common_tail
+
+;
+; Print CRLF
+;
+no_ebios:
+		mov si,crlf_msg
+		call print_message
+
 ;
 ; No EBIOS.  Load the boot sector using CHS.
 ;
-no_ebios:
 		push di
 		mov ax,[di+8]
 		mov dx,[di+10]
@@ -174,6 +202,8 @@ no_ebios:
 		or cl,al
 		mov dh,dl			; Head #
 		mov dl,[DriveNo]
+		mov ax,ds			; Some BIOS waste the es value, reload it
+		mov es,ax
 		mov bx,7C00h
 		mov ax,0201h			; Read one sector
 common_tail:
@@ -195,22 +225,26 @@ not_one_partition:
 		ja too_many_os
 missing_os:
 		mov si,missing_os_msg
-		jmp short die
+		jmp short print_and_die
 too_many_os:
 disk_error:
 		mov si,bad_disk_msg
+print_and_die:
+		call print_message
 die:
-.msgloop:
+		jmp short die
+
+print_message:
 		lodsb
 		and al,al
-		jz .now
+		jz print_end
 		mov ah,0Eh			; TTY output
 		mov bh,[BIOS_page]		; Current page
 		mov bl,07h
 		int 10h
-		jmp short .msgloop
-.now:
-		jmp short .now
+		jmp short print_message
+print_end:
+		ret
 
 		align 4, db 0			; Begin data area
 
@@ -232,6 +266,10 @@ Sectors:	dw 0
 ; Error messages
 missing_os_msg	db 'No operating system', 13, 10, 0
 bad_disk_msg	db 'Disk error', 13, 10, 0
+fdd_msg		db 'FDD', 0
+hdd_msg		db 'HDD', 0
+ebios_msg	db ' EBIOS'
+crlf_msg	db 13, 10, 0
 
 ;
 ; Maximum MBR size: 446 bytes; end-of-boot-sector signature also needed.
