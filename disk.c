@@ -83,9 +83,9 @@ void le_uint32_write(void* ptr, unsigned v)
 	ptr8[3] = (v >> 24) & 0xFF;
 }
 
-/* Disk */
-
 #ifdef __WIN32__
+
+/* Windows */
 
 #include <windows.h>
 #include <winioctl.h>
@@ -313,36 +313,7 @@ static BOOL CallBackUSBFind(void* void_context, HDEVINFO h, SP_DEVINFO_DATA* dat
 	return TRUE;
 }
 
-struct disk_handle* disk_find(void)
-{
-	struct find_context context;
-
-	context.count = 0;
-
-	if ((GetVersion() & 0x80000000) != 0) {
-		error_set("This program run only in Windows 2000/XP.");
-		return 0;
-	}
-
-	if (!SetupDiForEach(CallBackUSBFind, &context)) {
-		error_set("Error searching for usb disks.");
-		return 0;
-	}
-
-	if (context.count > 1) {
-		error_set("Please insert ONLY ONE usb disk.");
-		return 0;
-	}
-
-	if (context.count == 0) {
-		error_set("Please insert one usb disk.");
-		return 0;
-	}
-
-	return disk_open(context.device);
-}
-
-struct disk_handle* disk_open(const char* dev)
+static struct disk_handle* os_open(const char* dev)
 {
 	DISK_GEOMETRY dg;
 	DISK_GEOMETRY_EX dge;
@@ -466,7 +437,36 @@ err:
 	return 0;
 }
 
-int disk_close(struct disk_handle* h)
+static struct disk_handle* os_find(void)
+{
+	struct find_context context;
+
+	context.count = 0;
+
+	if ((GetVersion() & 0x80000000) != 0) {
+		error_set("This program run only in Windows 2000/XP.");
+		return 0;
+	}
+
+	if (!SetupDiForEach(CallBackUSBFind, &context)) {
+		error_set("Error searching for usb disks.");
+		return 0;
+	}
+
+	if (context.count > 1) {
+		error_set("Please insert ONLY ONE usb disk.");
+		return 0;
+	}
+
+	if (context.count == 0) {
+		error_set("Please insert one usb disk.");
+		return 0;
+	}
+
+	return os_open(context.device);
+}
+
+static int os_close(struct disk_handle* h)
 {
 	BOOL r;
 	DWORD size;
@@ -507,7 +507,7 @@ int disk_close(struct disk_handle* h)
 	return 0;
 }
 
-int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
+static int os_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 {
 	LARGE_INTEGER off;
 	DWORD info;
@@ -538,7 +538,7 @@ int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 	return 0;
 }
 
-int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned size)
+static int os_write(struct disk_handle* h, unsigned pos, const void* data, unsigned size)
 {
 	LARGE_INTEGER off;
 	DWORD info;
@@ -571,11 +571,13 @@ int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned s
 
 #else
 
+/* Linux */
+
 #ifdef USE_FIND
 /**
  * Check if the SCSI device is a USB Mass Storage and if it's present.
  */
-static int disk_usbmassstorage(const char* dev, int* host, int* channel, int* id, int* lun)
+static int os_usbmassstorage(const char* dev, int* host, int* channel, int* id, int* lun)
 {
 	int r, h;
 	char hostname[64];
@@ -635,63 +637,11 @@ err:
 }
 #endif
 
-struct disk_handle* disk_find(void)
-{
-#ifdef USE_FIND
-	int i;
-	char device[64];
-	int count;
-	int eaccess;
-
-	eaccess = 0;
-	count = 0;
-	for(i=0;i<16;++i) {
-		int r;
-		char buf[64];
-		int host;
-		int channel;
-		int id;
-		int lun;
-
-		sprintf(buf, "/dev/sd%c", (char)i + 'a');
-
-		r = disk_usbmassstorage(buf, &host, &channel, &id, &lun);
-		if (r != 0) {
-			if (errno == EACCES)
-				eaccess = 1;
-			continue;
-		}
-
-		++count;
-		strcpy(device, buf);
-	}
-
-	if (count > 1) {
-		error_set("Please insert ONLY ONE usb disk.");
-		return 0;
-	}
-
-	if (count == 0) {
-		if (eaccess) {
-			error_set("Please insert one usb disk and ensure to be root.");
-		} else {
-			error_set("Please insert one usb disk.");
-		}
-		return 0;
-	}
-
-	return disk_open(device);
-#else
-	error_set("USB disk detection not supported in this system.");
-	return 0;
-#endif
-}
-
 #ifdef USE_CHECKMOUNT
 /**
  * Check that the device is not mounted.
  */
-int disk_checkmount(const char* dev)
+static int os_checkmount(const char* dev)
 {
 	FILE* f;
 	struct mntent* m;
@@ -715,7 +665,7 @@ int disk_checkmount(const char* dev)
 }
 #endif
 
-struct disk_handle* disk_open(const char* dev)
+static struct disk_handle* os_open(const char* dev)
 {
 	off_t o;
 	struct hd_geometry hg;
@@ -735,7 +685,7 @@ struct disk_handle* disk_open(const char* dev)
 	strncpy(h->device, dev, sizeof(h->device) - 1);
 
 #ifdef USE_CHECKMOUNT
-	if (disk_checkmount(h->device) != 0) {
+	if (os_checkmount(h->device) != 0) {
 		goto err_free;
 	}
 #endif
@@ -807,7 +757,59 @@ err:
 	return 0;
 }
 
-int disk_close(struct disk_handle* h)
+static struct disk_handle* os_find(void)
+{
+#ifdef USE_FIND
+	int i;
+	char device[64];
+	int count;
+	int eaccess;
+
+	eaccess = 0;
+	count = 0;
+	for(i=0;i<16;++i) {
+		int r;
+		char buf[64];
+		int host;
+		int channel;
+		int id;
+		int lun;
+
+		sprintf(buf, "/dev/sd%c", (char)i + 'a');
+
+		r = os_usbmassstorage(buf, &host, &channel, &id, &lun);
+		if (r != 0) {
+			if (errno == EACCES)
+				eaccess = 1;
+			continue;
+		}
+
+		++count;
+		strcpy(device, buf);
+	}
+
+	if (count > 1) {
+		error_set("Please insert ONLY ONE usb disk.");
+		return 0;
+	}
+
+	if (count == 0) {
+		if (eaccess) {
+			error_set("Please insert one usb disk and ensure to be root.");
+		} else {
+			error_set("Please insert one usb disk.");
+		}
+		return 0;
+	}
+
+	return os_open(device);
+#else
+	error_set("USB disk detection not supported in this system.");
+	return 0;
+#endif
+}
+
+static int os_close(struct disk_handle* h)
 {
 	int r;
 
@@ -825,7 +827,7 @@ int disk_close(struct disk_handle* h)
 	return 0;
 }
 
-int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
+static int os_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 {
 	off_t o;
 	ssize_t s;
@@ -845,7 +847,7 @@ int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 	return 0;
 }
 
-int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned size)
+static int os_write(struct disk_handle* h, unsigned pos, const void* data, unsigned size)
 {
 	off_t o;
 	ssize_t s;
@@ -866,4 +868,163 @@ int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned s
 }
 
 #endif
+
+/* Cache */
+
+static struct disk_cache* cache_alloc(unsigned pos, const void* data, unsigned size)
+{
+	struct disk_cache* c;
+
+	c = malloc(sizeof(struct disk_cache));
+	if (!c) {
+		error_set("Low memory.");
+		return 0;
+	}
+
+	c->pos = pos;
+	c->size = size;
+	c->data = malloc(size * SECTOR_SIZE);
+	if (!c->data) {
+		free(c);
+		error_set("Low memory.");
+		return 0;
+	}
+
+	memcpy(c->data, data, size * SECTOR_SIZE);
+
+	return c;
+}
+
+static void cache_free(struct disk_cache* c)
+{
+	free(c->data);
+	free(c);
+}
+
+static int cache_flush(struct disk_handle* h)
+{
+	unsigned char* buf;
+	struct disk_cache* c;
+	int r;
+
+	if (!h->cache_list)
+		return 0;
+
+	buf = malloc((h->cache_end - h->cache_begin) * SECTOR_SIZE);
+	if (!buf) {
+		error_set("Low memory.");
+		return -1;
+	}
+
+	c = h->cache_list;
+	while (c) {
+		struct disk_cache* n;
+
+		memcpy(buf + (c->pos - h->cache_begin) * SECTOR_SIZE, c->data, c->size * SECTOR_SIZE);
+
+		n = c->next;
+		cache_free(c);
+		c = n;
+	}
+
+	h->cache_list = 0;
+
+	r = os_write(h, h->cache_begin, buf, h->cache_end - h->cache_begin);
+	if (r != 0) {
+		free(buf);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int cache_is_overlap(struct disk_handle* h, unsigned pos, unsigned size)
+{
+	if (!h->cache_list
+		|| pos + size <= h->cache_begin
+		|| pos >= h->cache_end)
+		return 0;
+	else
+		return 1;
+}
+
+static int cache_is_end(struct disk_handle* h, unsigned pos, unsigned size)
+{
+	return h->cache_list
+		&& pos == h->cache_end
+		&& (h->cache_end - h->cache_begin) < 2048; /* no more than 1 MB of cache */
+}
+
+struct disk_handle* disk_open(const char* dev)
+{
+	struct disk_handle* h = os_open(dev);
+	if (!h)
+		return 0;
+
+	h->cache_list = 0;
+
+	return h;
+}
+
+struct disk_handle* disk_find(void)
+{
+	struct disk_handle* h = os_find();
+	if (!h)
+		return 0;
+
+	h->cache_list = 0;
+
+	return h;
+}
+
+int disk_close(struct disk_handle* h)
+{
+	int r;
+
+	r = cache_flush(h);
+	if (r != 0)
+		return -1;
+
+	r = os_close(h);
+	if (r != 0)
+		return -1;
+
+	return 0;
+}
+
+int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
+{
+	if (cache_is_overlap(h, pos, size)) {
+		if (cache_flush(h) != 0)
+			return -1;
+	}
+
+	return os_read(h, pos, data, size);
+}
+
+int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned size)
+{
+	struct disk_cache* c = cache_alloc(pos, data, size);
+	if (!c)
+		return -1;
+
+	if (cache_is_end(h, pos, size)) {
+		c->next = h->cache_list;
+		h->cache_list = c;
+		h->cache_end = pos + size;
+		return 0;
+	}
+
+	if (cache_flush(h) != 0) {
+		cache_free(c);
+		return -1;
+	}
+
+	c->next = 0;
+	h->cache_list = c;
+	h->cache_begin = pos;
+	h->cache_end = pos + size;
+
+	return 0;
+}
 

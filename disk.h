@@ -35,6 +35,13 @@ struct disk_geometry {
 	unsigned char drive; /**< BIOS drive number. 0x0 for first floppy, 0x80 for first harddisk. */
 };
 
+struct disk_cache {
+	unsigned char* data; /**< Data to write. */
+	unsigned pos; /**< Position of the data in sectors. */
+	unsigned size; /**< Size of the data in sectors. */
+	struct disk_cache* next; /**< Next concatenated write. */
+};
+
 struct disk_handle {
 #ifdef __WIN32__
 	void* handle; /**< Handle. */
@@ -45,6 +52,10 @@ struct disk_handle {
 	char device[512]; /**< Device name. */
 	void* ope_context; /**< Context of the read/write operations callback. */
 	void (*ope_callback)(void* context, int operation, unsigned pos, unsigned size); /**< Callback for the read/write operations. */
+
+	struct disk_cache* cache_list; /**< Delayed write. */
+	unsigned cache_begin; /**< Start of the delayed write in sectors. */
+	unsigned cache_end; /**< End of the delayed write in sectors. */
 };
 
 unsigned le_uint16_read(const void* ptr);
