@@ -3,7 +3,7 @@
                             =======================
 
 
-1 MAKEBOOTFAT VERSION 1.1 2004/11
+1 MAKEBOOTFAT VERSION 1.1 2004/12
 =================================
 
 * The mbrfat sector now prints the type and geometry of

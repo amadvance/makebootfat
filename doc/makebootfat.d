@@ -62,12 +62,14 @@ Options
 		the same format used in the IMAGE directory specification.
 
 	-X, --syslinux
-		Enforce the syslinux FAT limitations. The syslinux tool
-		doesn't support FAT32 at all, and FAT16 with 64 and
-		128 sectors per cluster formats. This option exclude all
-		the FAT formats not supported by syslinux.
-		Please note that it limits the maximum size of filesystem
-		to 1 GB.
+		Enforce the syslinux FAT limitations. Syslinux doesn't
+		support FAT32 at all, and FAT16 with 64 and 128 sectors
+		per cluster formats.
+		This option exclude all the FAT formats not supported
+		by syslinux. Please note that it limits the maximum
+		size of filesystem to 1 GB.
+		Syslinux version 2.20 (and higher) supports all
+		FAT types and doesn't require this option.
 
 	-P, --partition
 		Ensure to operate on a partition and not on a disk.
@@ -122,8 +124,9 @@ Disks and Partitions Names
 	partition table.
 
 Syslinux
-	To make a bootable FAT using syslinux you must use the -X option
-	and copy in the root directory of the disk the files:
+	To make a bootable FAT using syslinux you must use
+	the -X option and copy in the root directory of the disk
+	the files:
 
 	ldlinux.sys - The syslinux loader.
 	syslinux.cfg - The syslinux configuration file.
@@ -143,6 +146,11 @@ Syslinux
 		:	-c ldlinux.sys -c syslinux.cfg \
 		:	-c linux -c initrd.img \
 		:	image
+
+	To make a bootable FAT using syslinux 2.20 (and higher)
+	you must use the syslinux included tools because the
+	ldlinux.* files need a special customization not yet
+	supported by makebootfat.
 
 Loadlin and FreeDOS
 	To make a bootable FAT using loadlin and FreeDOS you must copy

@@ -1,7 +1,7 @@
 Name
 	makebootfat - History For makebootfat
 
-makebootfat Version 1.1 2004/11
+makebootfat Version 1.1 2004/12
 	) The mbrfat sector now prints the type and geometry of
 		the drive.
 	) Minor fixes at the documentation.
