@@ -171,7 +171,7 @@ checkpartloop:
 		mov bx,[di+10]
 		mov [si+10],bx
 		mov dl,[DriveNo]
-		mov ax,ds			; Some BIOS waste the es value, reload it
+		mov ax,ds			; Restore the es register modified by the 13/08 call for floppy
 		mov es,ax
 		mov ax,4200h			; Extended Read
 		jmp short common_tail
@@ -202,7 +202,7 @@ no_ebios:
 		or cl,al
 		mov dh,dl			; Head #
 		mov dl,[DriveNo]
-		mov ax,ds			; Some BIOS waste the es value, reload it
+		mov ax,ds			; Restore the es register modified by the 13/08 call for floppy
 		mov es,ax
 		mov bx,7C00h
 		mov ax,0201h			; Read one sector
