@@ -1,7 +1,7 @@
 /*
  * This file is part of the Advance project.
  *
- * Copyright (C) 2004 Andrea Mazzoleni
+ * Copyright (C) 2004, 2005 Andrea Mazzoleni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -320,7 +320,7 @@ struct disk_handle* disk_find(void)
 	context.count = 0;
 
 	if ((GetVersion() & 0x80000000) != 0) {
-		error_set("This program run only in Windows NT/2000/XP.");
+		error_set("This program run only in Windows 2000/XP.");
 		return 0;
 	}
 
@@ -352,7 +352,7 @@ struct disk_handle* disk_open(const char* dev)
 	struct disk_handle* h;
 
 	if ((GetVersion() & 0x80000000) != 0) {
-		error_set("This program run only in Windows NT/2000/XP.");
+		error_set("This program run only in Windows 2000/XP.");
 		return 0;
 	}
 
