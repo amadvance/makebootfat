@@ -3,11 +3,14 @@
                             =======================
 
 
-1 MAKEBOOTFAT VERSION 1.1 2004/06
+1 MAKEBOOTFAT VERSION 1.1 2004/07
 =================================
 
 * The mbrfat sector now prints the type and geometry of
   the drive.
+* Minor fixes at the documentation.
+* Fixed a minor problem in the Windows SetupDiGetProperty()
+  function.
 
 
 2 MAKEBOOTFAT VERSION 1.0 2004/06

@@ -13,7 +13,7 @@ Description
 
 	The official site of AdvanceCD and makebootfat is:
 
-		http://advancemame.sourceforge.net
+		+http://advancemame.sourceforge.net/
 
 Options
 	-o, --output DEVICE
@@ -105,7 +105,7 @@ Options
 	-V, --version
 		Print the version number.
 
-	IMAGE
+	=IMAGE
 		Directory image to copy on the disk. All the files
 		and subdirectories present in this directory
 		are copied on the disk.

@@ -6,12 +6,12 @@ Name
 		:./configure
 		:make
 
-	and as root to install the programs and the documentation
+	and as root to install the program and the documentation
 	type:
 
 		:make install
 
-	The documentation is in the man pages:
+	The documentation is in the man page:
 
 		:man makebootfat
 

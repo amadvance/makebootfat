@@ -111,7 +111,7 @@ typedef enum _PARTITION_STYLE {
 } PARTITION_STYLE;
 
 typedef struct _PARTITION_INFORMATION_MBR {
-	BYTE  PartitionType;
+	BYTE PartitionType;
 	BOOLEAN BootIndicator;
 	BOOLEAN RecognizedPartition;
 	DWORD HiddenSectors;
@@ -138,7 +138,7 @@ typedef struct _PARTITION_INFORMATION_EX {
 typedef struct _DISK_GEOMETRY_EX {
 	DISK_GEOMETRY Geometry;
 	LARGE_INTEGER DiskSize;
-	BYTE  Data[1];
+	BYTE Data[1];
 } DISK_GEOMETRY_EX;
 
 #endif
@@ -163,6 +163,7 @@ static BOOL SetupDiGetProperty(HDEVINFO dev, SP_DEVINFO_DATA* data, DWORD prop, 
 			return FALSE; 
 	}
 
+	*buf_size = RequiredSize;
 	*buf = (unsigned char*)malloc(RequiredSize);
 	if (!buf)
 		return FALSE;
@@ -307,7 +308,7 @@ static BOOL CallBackUSBFind(void* void_context, HDEVINFO h, SP_DEVINFO_DATA* dat
 
 		memset(context->device, 0, sizeof(context->device));
 		strncpy(context->device, ddata->DevicePath, sizeof(context->device) - 1);
-	}	
+	}
 
 	return TRUE;
 }
