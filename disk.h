@@ -27,10 +27,10 @@
 #define SECTOR_SIZE 512
 
 struct disk_geometry {
-	unsigned sectors; /**< Track size in number of sector. */
-	unsigned heads; /**< Cylinder size in number of tracks. */
-	unsigned cylinders; /**< Number of cylinder. */
-	unsigned size; /**< Total size in number of sectors. */
+	unsigned sectors; /**< Track size in number of sector. Max is 63. */
+	unsigned heads; /**< Cylinder size in number of tracks. Max is 256. */
+	unsigned cylinders; /**< Number of cylinder. Max is 1024. */
+	unsigned size; /**< Total size in number of sectors. With the limits 63/256/1024 the max size approx. 8 GBytes. */
 	unsigned start; /**< Number of sectors before the accessible space. */
 	unsigned char drive; /**< BIOS drive number. 0x0 for first floppy, 0x80 for first harddisk. */
 };
@@ -43,6 +43,8 @@ struct disk_handle {
 #endif
 	struct disk_geometry geometry; /**< Device geometry. */
 	char device[512]; /**< Device name. */
+	void* ope_context; /**< Context of the read/write operations callback. */
+	void (*ope_callback)(void* context, int operation, unsigned pos, unsigned size); /**< Callback for the read/write operations. */
 };
 
 unsigned le_uint16_read(const void* ptr);

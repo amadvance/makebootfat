@@ -20,6 +20,7 @@ man_MANS = doc/makebootfat.1
 clean-local:
 	rm -f makebootfat.exe
 	rm -f mbrfat.lst
+	rm -f check.raw
 
 maintainer-clean-local:
 	rm -f README AUTHORS HISTORY INSTALL doc/copying.txt
@@ -32,13 +33,28 @@ EXTRA_DIST = \
 	configure.windows \
 	README AUTHORS HISTORY INSTALL COPYING \
 	doc/makebootfat.1 \
-	 doc/makebootfat.d doc/history.d doc/readme.d doc/authors.d doc/install.d \
+	doc/makebootfat.d doc/history.d doc/readme.d doc/authors.d doc/install.d \
 	doc/makebootfat.txt doc/history.txt doc/readme.txt doc/authors.txt doc/install.txt \
 	doc/makebootfat.html doc/history.html doc/readme.html doc/authors.html doc/install.html \
-	mbrfat.asm mbrfat.bin
+	mbrfat.asm mbrfat.bin \
+	test/test.raw test/blank.raw \
+	test/ldlinux.bss test/ldlinux.sys \
+	test/test.txt \
+	test/image/dir/subtest.txt
 
 mbrfat.bin: mbrfat.asm
 	nasm -O99 -f bin -l mbrfat.lst -o mbrfat.bin mbrfat.asm
+
+check-local:
+	rm -f check.raw
+	cat $(srcdir)/test/blank.raw > check.raw
+	./makebootfat -v -o check.raw -S 12345678 -t 12345678 -b $(srcdir)/test/ldlinux.bss -m $(srcdir)/mbrfat.bin \
+		-F -c $(srcdir)/test/ldlinux.sys -c $(srcdir)/test/test.txt -O OEM12345678 -L LABEL123456 -Z -Y \
+		$(srcdir)/test/image
+	cmp check.raw $(srcdir)/test/test.raw
+	echo Success!
+
+# TODO
 
 # Docs
 

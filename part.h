@@ -46,7 +46,7 @@ struct partition_table {
 	unsigned char id[2]; /**< Partition ID 0xAA55. */
 };
 
-void part_setup(unsigned char* mbr, unsigned fat_bit, unsigned fat_begin, unsigned fat_size, const struct disk_geometry* geometry);
+void part_setup(unsigned char* mbr, unsigned entry, unsigned fat_bit, unsigned fat_begin, unsigned fat_size, const struct disk_geometry* geometry);
 int part_fat_setup(unsigned char* mbr, const unsigned char* boot, unsigned bit, unsigned pos);
 
 #endif

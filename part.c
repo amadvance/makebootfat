@@ -52,34 +52,35 @@ static void part_entry_set(struct partition_entry* entry, unsigned offset, unsig
 	c = end;
 
 	entry->end_head = h;
-	entry->end_seccyl[0] = (s & 0x3F) | ((c >> 2) & 0xc0);	
+	entry->end_seccyl[0] = (s & 0x3F) | ((c >> 2) & 0xc0);
 	entry->end_seccyl[1] = c & 0xFF;
 }
 
 /**
  * Create a partition table filled with a bootable FAT partition.
+ * \param entry Partition entry to use. From 0 to 3.
  * The boot code is not modified.
  */
-void part_setup(unsigned char* mbr, unsigned fat_bit, unsigned fat_begin, unsigned fat_size, const struct disk_geometry* geometry)
+void part_setup(unsigned char* mbr, unsigned entry, unsigned fat_bit, unsigned fat_begin, unsigned fat_size, const struct disk_geometry* geometry)
 {
 	struct partition_table* part = (struct partition_table*)mbr;
 
 	/* clear the table */
 	memset(part->entries, 0, sizeof(part->entries));
 	
-	part->entries[0].status = 0x80;
+	part->entries[entry].status = 0x80;
 	if (fat_bit == 12)
-		part->entries[0].type = 1; /* FAT 12 */
+		part->entries[entry].type = 1; /* FAT 12 */
 	else if (fat_bit == 16)
-		part->entries[0].type = 6; /* FAT 16 (>32M) */
+		part->entries[entry].type = 6; /* FAT 16 (>32M) */
 	else if (fat_bit == 32)
-		part->entries[0].type = 0xb; /* W95 FAT 32 */
+		part->entries[entry].type = 0xb; /* W95 FAT 32 */
 	else
-		part->entries[0].type = 0;
+		part->entries[entry].type = 0;
 
 	assert(fat_begin + fat_size <= geometry->size);
 
-	part_entry_set(&part->entries[0], fat_begin, fat_size, geometry);
+	part_entry_set(&part->entries[entry], fat_begin, fat_size, geometry);
 
 	part->id[0] = 0x55;
 	part->id[1] = 0xAA;

@@ -359,8 +359,11 @@ struct disk_handle* disk_open(const char* dev)
 	h = malloc(sizeof(struct disk_handle));
 	if (!h) {
 		error_set("Low memory.");
-		return 0;
+		goto err;
 	}
+
+	h->ope_callback = 0;
+	h->ope_context = 0;
 
 	memset(h->device, 0, sizeof(h->device));
 	strncpy(h->device, dev, sizeof(h->device) - 1);
@@ -369,17 +372,17 @@ struct disk_handle* disk_open(const char* dev)
 	/* this is required because the LOCK doesn't work on disks but only on volumes */
 	if (!SetupDiForEach(CallBackUSBReconnect, h->device)) {
 		error_set("Error %d restarting the device %s.", GetLastError(), h->device);
-		return 0;
+		goto err_free;
 	}
 
 	h->handle = CreateFile(h->device, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_FLAG_WRITE_THROUGH, 0);
 	if (h->handle == INVALID_HANDLE_VALUE) {
 		if (GetLastError() == ERROR_ACCESS_DENIED) {
 			error_set("You must be Administrator to access the device %s.", h->device);
-			return 0;
+			goto err_free;
 		} else {
 			error_set("Error %d accessing the device %s.", GetLastError(), h->device);
-			return 0;
+			goto err_free;
 		}
 	}
 
@@ -389,12 +392,10 @@ struct disk_handle* disk_open(const char* dev)
 			/* ignore the error */
 		} else if (GetLastError() == ERROR_ACCESS_DENIED) {
 			error_set("The device %s is busy. Close all the applications and retry.", h->device);
-			CloseHandle(h->handle);
-			return 0;
+			goto err_close;
 		} else {
 			error_set("Error %d locking the volume %s.", GetLastError(), h->device);
-			CloseHandle(h->handle);
-			return 0;
+			goto err_close;
 		}
 	}
 
@@ -406,19 +407,16 @@ struct disk_handle* disk_open(const char* dev)
 				if (GetLastError() == ERROR_INVALID_FUNCTION) {
 					/* IOCTL_DISK_GET_DRIVE_GEOMETRY_EX is supported only in Windows XP */
 					error_set("You need Windows XP to format this partition.");
-					CloseHandle(h->handle);
-					return 0;
+					goto err_close;
 				} else {
 					error_set("Error %d getting the device geometry.", GetLastError());
-					CloseHandle(h->handle);
-					return 0;
+					goto err_close;
 				}
 			}
 			dg = dge.Geometry;
 		} else {
 			error_set("Error %d getting the device geometry.", GetLastError());
-			CloseHandle(h->handle);
-			return 0;
+			goto err_close;
 		}
 	}
 
@@ -428,27 +426,23 @@ struct disk_handle* disk_open(const char* dev)
 			if (!DeviceIoControl(h, IOCTL_DISK_GET_PARTITION_INFO_EX, 0, 0, &pie, sizeof(pie), &size, 0)) {
 				if (GetLastError() == ERROR_INVALID_FUNCTION) {
 					error_set("You need Windows XP to format this partition.");
-					CloseHandle(h->handle);
-					return 0;
+					goto err_close;
 				} else {
 					error_set("Error %d getting the device size.", GetLastError());
-					CloseHandle(h->handle);
-					return 0;
+					goto err_close;
 				}
 			}
 			pi.StartingOffset = pie.StartingOffset;
 			pi.PartitionLength = pie.PartitionLength;
 		} else {
 			error_set("Error %d getting the device size.", GetLastError());
-			CloseHandle(h->handle);
-			return 0;
+			goto err_close;
 		}
 	}
 
 	if (pi.PartitionLength.QuadPart == 0 || (pi.PartitionLength.QuadPart % SECTOR_SIZE) != 0) {
 		error_set("Invalid device size.");
-		CloseHandle(h->handle);
-		return 0;
+		goto err_close;
 	}
 
 	h->geometry.size = pi.PartitionLength.QuadPart / SECTOR_SIZE;
@@ -463,6 +457,13 @@ struct disk_handle* disk_open(const char* dev)
 	}
 
 	return h;
+
+err_close:
+	CloseHandle(h->handle);
+err_free:
+	free(h);
+err:
+	return 0;
 }
 
 int disk_close(struct disk_handle* h)
@@ -531,6 +532,9 @@ int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 		return -1;
 	}
 
+	if (h->ope_callback)
+		h->ope_callback(h->ope_context, 0, pos, size);
+
 	return 0;
 }
 
@@ -559,6 +563,9 @@ int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned s
 		return -1;
 	}
 
+	if (h->ope_callback)
+		h->ope_callback(h->ope_context, 1, pos, size);
+
 	return 0;
 }
 
@@ -578,26 +585,23 @@ static int disk_usbmassstorage(const char* dev, int* host, int* channel, int* id
 
 	h = open(dev, O_RDONLY | O_NONBLOCK);
 	if (h < 0) {
-		return -1;
+		goto err;
 	}
 
 	*(int*)hostname = 63;
 	r = ioctl(h, SCSI_IOCTL_PROBE_HOST, hostname);
 	if (r < 0) {
-		close(h);
-		return -1;
+		goto err_close;
 	}
 
 	/* exclude not USB mass storage device */
 	if (strstr(hostname, "USB Mass Storage") == 0) {
-		close(h);
-		return -1;
+		goto err_close;
 	}
 
 	r = ioctl(h, SCSI_IOCTL_GET_IDLUN, &idlun);
 	if (r < 0) {
-		close(h);
-		return -1;
+		goto err_close;
 	}
 
 	*channel = (idlun[0] >> 16) & 0xff;
@@ -606,14 +610,12 @@ static int disk_usbmassstorage(const char* dev, int* host, int* channel, int* id
 
 	/* exclude secondary devices */
 	if (*lun != 0) {
-		close(h);
-		return -1;
+		goto err_close;
 	}
 
 	r = ioctl(h, SCSI_IOCTL_GET_BUS_NUMBER, &bus_number);
 	if (r < 0) {
-		close(h);
-		return -1;
+		goto err_close;
 	}
 
 	*host = bus_number;
@@ -621,11 +623,15 @@ static int disk_usbmassstorage(const char* dev, int* host, int* channel, int* id
 	/* try a read, this exclude removed device on the 2.4 Linux kernel */
 	r = read(h, buf, SECTOR_SIZE);
 	if (r != SECTOR_SIZE) {
-		close(h);
-		return -1;
+		goto err_close;
 	}
 
 	return 0;
+
+err_close:
+	close(h);
+err:
+	return -1;
 }
 #endif
 
@@ -714,38 +720,41 @@ struct disk_handle* disk_open(const char* dev)
 	off_t o;
 	struct hd_geometry hg;
 	struct floppy_struct fg;
-	struct disk_handle* h = malloc(sizeof(struct disk_handle));
+	struct disk_handle* h;
+
+	h = malloc(sizeof(struct disk_handle));
 	if (!h) {
 		error_set("Low memory.");
-		return 0;
+		goto err;
 	}
+
+	h->ope_callback = 0;
+	h->ope_context = 0;
 
 	memset(h->device, 0, sizeof(h->device));
 	strncpy(h->device, dev, sizeof(h->device) - 1);
 
 #ifdef USE_CHECKMOUNT
 	if (disk_checkmount(h->device) != 0) {
-		return 0;
+		goto err_free;
 	}
 #endif
 
 	h->handle = open(h->device, O_RDWR);
 	if (h->handle == -1) {
 		error_set("Error opening the device %s. %s.", h->device, strerror(errno));
-		return 0;
+		goto err_free;
 	}
 
 	o = lseek(h->handle, 0, SEEK_END);
 	if (o == -1) {
-		close(h->handle);
 		error_set("Error seeking the device %s. %s.", h->device, strerror(errno));
-		return 0;
+		goto err_close;
 	}
 
 	if (o == 0 || (o % SECTOR_SIZE) != 0) {
-		close(h->handle);
 		error_set("Invalid device size.");
-		return 0;
+		goto err_close;
 	}
 
 	h->geometry.size = o / SECTOR_SIZE;
@@ -766,12 +775,36 @@ struct disk_handle* disk_open(const char* dev)
 		h->geometry.cylinders = fg.track;
 		h->geometry.drive = 0x0;
 	} else {
-		close(h->handle);
-		error_set("Error getting the geometry of the device %s.", h->device);
-		return 0;
+		h->geometry.start = 0;
+		/* fallback to standard values */
+		if (h->geometry.size <= 32*64*1024) {
+			/* ZIP-Disk geometry */
+			h->geometry.sectors = 32;
+			h->geometry.heads = 64;
+		} else if (h->geometry.size <= 32*256*1024) {
+			/* ZIP-Disk like geometry */
+			h->geometry.sectors = 32;
+			h->geometry.heads = 256;
+		} else {
+			/* maximum size geometry */
+			h->geometry.sectors = 63;
+			h->geometry.heads = 256;
+		}
+		/* compute the cylinders number */
+		h->geometry.cylinders = h->geometry.size / (h->geometry.sectors * h->geometry.heads);
+		h->geometry.drive = 0x0;
+		/* recompute the size */
+		h->geometry.size = h->geometry.sectors * h->geometry.heads * h->geometry.cylinders;
 	}
 
 	return h;
+
+err_close:
+	close(h->handle);
+err_free:
+	free(h);
+err:
+	return 0;
 }
 
 int disk_close(struct disk_handle* h)
@@ -806,6 +839,9 @@ int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 		return -1;
 	}
 
+	if (h->ope_callback)
+		h->ope_callback(h->ope_context, 0, pos, size);
+
 	return 0;
 }
 
@@ -822,6 +858,9 @@ int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned s
 		error_set("Error writing the device. %s.", strerror(errno));
 		return -1;
 	}
+
+	if (h->ope_callback)
+		h->ope_callback(h->ope_context, 1, pos, size);
 
 	return 0;
 }

@@ -202,7 +202,7 @@ struct string_list {
 	struct string_list* next;
 };
 
-int fatboot_copy(struct fat_context* fat, unsigned cluster, const char* image, struct string_list* exclude_list, int verbose)
+int fatboot_copy(struct fat_context* fat, unsigned cluster, const char* image, struct string_list* exclude_list, time_t force_time)
 {
 	DIR* d;
 	struct dirent* dd;
@@ -244,22 +244,22 @@ int fatboot_copy(struct fat_context* fat, unsigned cluster, const char* image, s
 		if (S_ISDIR(st.st_mode)) {
 			file_size = 0;
 			file_attrib = FAT_ATTRIB_DIRECTORY;
-			file_time = st.st_mtime;
+			if (force_time)
+				file_time = force_time;
+			else
+				file_time = st.st_mtime;
 
-			if (verbose)
-				printf("%s\n", path);
-
-			if (fat_cluster_dir(fat, cluster, &file_cluster) != 0)
+			if (fat_cluster_dir(fat, cluster, &file_cluster, file_time) != 0)
 				return -1;
 
-			if (fatboot_copy(fat, file_cluster, path, exclude_list, verbose) != 0)
+			if (fatboot_copy(fat, file_cluster, path, exclude_list, force_time) != 0)
 				return -1;
 		} else if (S_ISREG(st.st_mode)) {
 			file_attrib = 0;
-			file_time = st.st_mtime;
-
-			if (verbose)
-				printf("%s\n", path);
+			if (force_time)
+				file_time = force_time;
+			else
+				file_time = st.st_mtime;
 
 			if (fat_cluster_file(fat, path, &file_cluster, &file_size) != 0)
 				return -1;
@@ -276,7 +276,7 @@ int fatboot_copy(struct fat_context* fat, unsigned cluster, const char* image, s
 	return 0;
 }
 
-int fatboot_copytoroot(struct fat_context* fat, const char* file, unsigned* cluster, unsigned* size)
+int fatboot_copytoroot(struct fat_context* fat, const char* file, unsigned* cluster, unsigned* size, time_t force_time)
 {
 	struct stat st;
 	unsigned file_cluster;
@@ -292,7 +292,10 @@ int fatboot_copytoroot(struct fat_context* fat, const char* file, unsigned* clus
 	}
 
 	file_attrib = FAT_ATTRIB_READONLY;
-	file_time = st.st_mtime;
+	if (force_time)
+		file_time = force_time;
+	else
+		file_time = st.st_mtime;
 
 	name =  strrchr(file, '/');
 	slash = strrchr(file, '\\');
@@ -333,6 +336,7 @@ void usage() {
 	printf("  " SWITCH_GETOPT_LONG("-x, --exclude FILE ", "-x") "  Exclude files\n");
 	printf("  " SWITCH_GETOPT_LONG("-X, --syslinux2    ", "-X") "  Enforce syslinux 2.xx limitations\n");
 	printf("  " SWITCH_GETOPT_LONG("-Y, --syslinux3    ", "-Y") "  Enforce syslinux 3.xx limitations\n");
+	printf("  " SWITCH_GETOPT_LONG("-Z, --zip          ", "-Z") "  Enforce ZIP-Drive compatibility if possible\n");
 	printf("  " SWITCH_GETOPT_LONG("-F, --mbrfat       ", "-F") "  Change the MBR to imitate a FAT boot sector\n");
 	printf("  " SWITCH_GETOPT_LONG("-L, --label LABEL  ", "-L") "  Volume label\n");
 	printf("  " SWITCH_GETOPT_LONG("-O, --oem OEM      ", "-O") "  Volume oem\n");
@@ -359,9 +363,11 @@ struct option long_options[] = {
 	{"mbr", 1, 0, 'm'},
 	{"copy", 1, 0, 'c'},
 	{"exclude", 1, 0, 'x'},
+	{"time", 1, 0, 't'},
 
 	{"syslinux2", 0, 0, 'X'},
 	{"syslinux3", 0, 0, 'Y'},
+	{"zip", 0, 0, 'Z'},
 	{"partition", 0, 0, 'P'},
 	{"disk", 0, 0, 'D'},
 	{"mbrfat", 0, 0, 'F'},
@@ -375,7 +381,7 @@ struct option long_options[] = {
 };
 #endif
 
-#define OPTIONS "L:O:S:E:o:ab:1:2:3:m:c:x:XYPDFvihV"
+#define OPTIONS "L:O:S:E:o:ab:1:2:3:m:c:x:t:XYZPDFvihV"
 
 void string_insert(struct string_list** list, const char* s)
 {
@@ -429,6 +435,26 @@ int sector_read(unsigned char* sector, const char* file)
 	return 0;
 }
 
+struct verbose_context_struct {
+	unsigned total;
+	unsigned counter;
+};
+
+void verbose_callback(void* void_context, int operation, unsigned pos, unsigned size)
+{
+	struct verbose_context_struct* context = (struct verbose_context_struct*)void_context;
+
+	if (operation) {
+		context->counter += size;
+		while (context->counter >= 2048) {
+			++context->total;
+			context->counter -= 2048;
+			printf("\rwrite %d [sectors], %d [MB]", context->total * 2048, context->total);
+			fflush(stdout);
+		}
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	struct string_list* exclude_list;
@@ -454,14 +480,17 @@ int main(int argc, char* argv[])
 	int syslinux3;
 	int mbrfat;
 	int verbose;
-	int verbosefile;
 	int only_partition;
 	int only_disk;
+	int zip_compatibility;
 	int drive;
 	const unsigned syslinux3_sector_max = 65;
 	unsigned syslinux3_sector_map[syslinux3_sector_max];
 	int syslinux3_sector_mac;
 	unsigned syslinux3_size;
+	unsigned part_entry;
+	struct verbose_context_struct verbose_context;
+	time_t force_time;
 
 	exclude_list = 0;
 	copy_list = 0;
@@ -477,12 +506,16 @@ int main(int argc, char* argv[])
 	syslinux3 = 0;
 	mbrfat = 0;
 	verbose = 0;
-	verbosefile = 0;
 	only_partition = 0;
 	only_disk = 0;
 	drive = -1;
 	syslinux3_sector_mac = 0;
 	syslinux3_size = 0;
+	zip_compatibility = 0;
+	part_entry = 0;
+	verbose_context.total = 0;
+	verbose_context.counter = 0;
+	force_time = 0;
 
 	opterr = 0;
 
@@ -529,11 +562,17 @@ int main(int argc, char* argv[])
 		case 'x' :
 			string_insert(&exclude_list, optarg);
 			break;
+		case 't' :
+			force_time = atoi(optarg);
+			break;
 		case 'X' :
 			syslinux2 = 1;
 			break;
 		case 'Y' :
 			syslinux3 = 1;
+			break;
+		case 'Z' :
+			zip_compatibility = 1;
 			break;
 		case 'P' :
 			only_partition = 1;
@@ -608,6 +647,18 @@ int main(int argc, char* argv[])
 			goto err_msg;
 	}
 
+	if (zip_compatibility) {
+		if (h->geometry.size <= 1024 * 64 * 32) {
+			/* A ZIP-Drive requires 32 sectors, 64 heads and the use of the last partition entry */
+			h->geometry.sectors = 32; /* value required by ZIP-Drive */
+			h->geometry.heads = 64; /* value required by ZIP-Drive */
+			part_entry = 3; /* value required by ZIP-Drive */
+			h->geometry.cylinders = h->geometry.size / (h->geometry.sectors * h->geometry.heads);
+			/* recompute the size, it may be a little smaller */
+			h->geometry.size = h->geometry.sectors * h->geometry.heads * h->geometry.cylinders;
+		}
+	}
+
 	if (drive != -1) {
 		h->geometry.drive = drive;
 	}
@@ -651,8 +702,12 @@ int main(int argc, char* argv[])
 
 	if (verbose) {
 		printf("device_start %d [sectors]\n", h->geometry.start);
-		printf("device_size %d [sectors]\n", h->geometry.size);
-		printf("device_geometry %d/%d/%d [cylinders/heads/sectors]\n", h->geometry.cylinders, h->geometry.heads, h->geometry.sectors);
+		printf("device_size %d [sectors], %d [MB]\n", h->geometry.size, h->geometry.size / 2048);
+		printf("device_geometry %d/%d/%d [cylinders/heads/sectors]", h->geometry.cylinders, h->geometry.heads, h->geometry.sectors);
+		if (h->geometry.sectors == 32 && h->geometry.heads == 64) {
+			printf(" (ZIP-Drive compatible)");
+		}
+		printf("\n");
 		printf("bios_drive %s\n", (h->geometry.drive & 0x80) != 0 ? "HDD" : "FDD");
 	}
 
@@ -668,7 +723,7 @@ int main(int argc, char* argv[])
 	}
 
 	if (file_mbr) {
-		part_setup(mbr, fat->info.fat_bit, fat->h_pos, fat->h_size, &h->geometry);
+		part_setup(mbr, part_entry, fat->info.fat_bit, fat->h_pos, fat->h_size, &h->geometry);
 
 		if (mbrfat) {
 			unsigned char boot[SECTOR_SIZE];
@@ -688,16 +743,18 @@ int main(int argc, char* argv[])
 			goto err_invalidate;
 	}
 
+	if (verbose) {
+		h->ope_callback = verbose_callback;
+		h->ope_context = &verbose_context;
+	}
+
 	s = copy_list;
 	while (s) {
 		unsigned root_cluster;
 		unsigned root_size;
 		unsigned l;
 
-		if (verbosefile)
-			printf("%s\n", s->path);
-
-		r = fatboot_copytoroot(fat, s->path, &root_cluster, &root_size);
+		r = fatboot_copytoroot(fat, s->path, &root_cluster, &root_size, force_time);
 		if (r != 0)
 			goto err_invalidate;
 
@@ -717,7 +774,7 @@ int main(int argc, char* argv[])
 		s = s->next;
 	}
 
-	r = fatboot_copy(fat, 0, argv[optind], exclude_list, verbosefile);
+	r = fatboot_copy(fat, 0, argv[optind], exclude_list, force_time);
 	if (r != 0) 
 		goto err_invalidate;
 
@@ -738,6 +795,12 @@ int main(int argc, char* argv[])
 	r = fat_close(fat);
 	if (r != 0) 
 		goto err_invalidate;
+
+	if (verbose) {
+		h->ope_callback = 0;
+		h->ope_context = 0;
+		printf("\n");
+	}
 
 	r = disk_close(h);
 	if (r != 0) 

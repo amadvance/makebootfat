@@ -4,10 +4,12 @@ Name
 makebootfat Version 1.2 2005/01
 	) Added support for syslinux 3.xx with the new
 		-Y option. This removes the limitation of 1 GB
-		on usb FAT filesystems.
+		on FAT filesystems.
 	) The Linux version now suggests to switch to root if
 		searching for usb devices results in "Access Denied"
 		errors.
+	) Added a new -Z option to force ZIP-Disk compatibility.
+		It allows to boot in USB-ZIP mode.
 
 makebootfat Version 1.1 2004/12
 	) The mbrfat sector now prints the type and geometry of

@@ -889,7 +889,7 @@ static void fat_date(unsigned char* w, time_t t)
 	int dos_month;
 	int dos_day;
 
-	tm = localtime(&t);
+	tm = gmtime(&t);
 
 	if (!tm) {
 		le_uint16_write(w, 0);
@@ -917,7 +917,7 @@ static void fat_time(unsigned char* w, time_t t)
 	int dos_min;
 	int dos_sec;
 
-	tm = localtime(&t);
+	tm = gmtime(&t);
 
 	if (!tm) {
 		le_uint16_write(w, 0);
@@ -946,11 +946,10 @@ static void fat_time(unsigned char* w, time_t t)
  * \param root_cluster Cluster of the parent dir. 0 for root directory.
  * \param cluster Pointer to store the first allocated cluster.
  */
-int fat_cluster_dir(struct fat_context* fat, unsigned root_cluster, unsigned* cluster)
+int fat_cluster_dir(struct fat_context* fat, unsigned root_cluster, unsigned* cluster, time_t time)
 {
 	unsigned c;
 	struct fat_direntry* entry;
-	time_t now = time(0);
 
 	c = fat_table_allocate(fat, FAT_TABLE_EOC);
 	if (!c)
@@ -969,8 +968,8 @@ int fat_cluster_dir(struct fat_context* fat, unsigned root_cluster, unsigned* cl
 	le_uint16_write(entry[0].DE_CrtDate, 0);
 	le_uint16_write(entry[0].DE_LstAccDate, 0);
 	le_uint16_write(entry[0].DE_ClusterH, c >> 16);
-	fat_time(entry[0].DE_WrtTime, now);
-	fat_date(entry[0].DE_WrtDate, now);
+	fat_time(entry[0].DE_WrtTime, time);
+	fat_date(entry[0].DE_WrtDate, time);
 	le_uint16_write(entry[0].DE_ClusterL, c & 0xFFFF);
 	le_uint32_write(entry[0].DE_FileSize, 0);
 	strfcpy(entry[1].DE_Name, "..", ' ', 11);
@@ -981,8 +980,8 @@ int fat_cluster_dir(struct fat_context* fat, unsigned root_cluster, unsigned* cl
 	le_uint16_write(entry[1].DE_CrtDate, 0);
 	le_uint16_write(entry[1].DE_LstAccDate, 0);
 	le_uint16_write(entry[1].DE_ClusterH, root_cluster >> 16);
-	fat_time(entry[1].DE_WrtTime, now);
-	fat_date(entry[1].DE_WrtDate, now);
+	fat_time(entry[1].DE_WrtTime, time);
+	fat_date(entry[1].DE_WrtDate, time);
 	le_uint16_write(entry[1].DE_ClusterL, root_cluster & 0xFFFF);
 	le_uint32_write(entry[1].DE_FileSize, 0);
 

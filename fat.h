@@ -175,7 +175,7 @@ struct fat_context* fat_open(struct disk_handle* h, unsigned pos, unsigned size,
 int fat_close(struct fat_context* fat);
 int fat_format(struct fat_context* fat, unsigned size, unsigned bit, unsigned sector_per_cluster, const char* oem, const char* label, unsigned serial, const struct disk_geometry* geometry);
 int fat_entry_add(struct fat_context* fat, unsigned dir_cluster, const char* file_name, unsigned file_cluster, unsigned file_size, unsigned file_attrib, time_t file_time);
-int fat_cluster_dir(struct fat_context* fat, unsigned root_cluster, unsigned* cluster);
+int fat_cluster_dir(struct fat_context* fat, unsigned root_cluster, unsigned* cluster, time_t time);
 int fat_cluster_file(struct fat_context* fat, const char* file, unsigned* cluster, unsigned* size);
 int fat_cluster_chain(struct fat_context* fat, unsigned cluster, unsigned* cluster_map, unsigned cluster_max);
 int fat_sector_chain(struct fat_context* fat, unsigned cluster, unsigned* sector_map, unsigned sector_max);

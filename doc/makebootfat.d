@@ -77,6 +77,11 @@ Options
 		This option do this customization without the need
 		to use the syslinux installer.
 
+	-Z, --zip
+		If possibile force the ZIP-Disk compatibility setting
+		a geometry of 32 sectors and 32 heads. It allows to
+		boot also in USB-ZIP mode.
+
 	-P, --partition
 		Ensure to operate on a partition and not on a disk.
 
@@ -187,23 +192,29 @@ Loadlin and FreeDOS
 	FAT32 boot sector.
 
 Multi Standard USB Booting
-	The BIOS USB boot support is generally differentiated in two
-	categories: USB-FDD and USB-HDD.
+	The BIOS USB boot support is generally differentiated in three
+	categories: USB-HDD, USB-FDD and USB-ZIP.
+
+	The USB-HDD (Hard Disk Drive) standard is the preferred choice and
+	it requires the presence of a partition table in the first sector
+	of the disk. You can create this type of disk using the -m option.
 
 	The USB-FDD (Floppy Disk Drive) standard requires the presence of
 	a filesystem starting from the first sector of the disk without
 	a partition table.
 	You can create this type of disk without using the -m option.
 
-	The USB-HDD (Hard Disk Drive) standard requires the presence of
-	a partition table in the first sector of the disk.
-	You can create this type of disk using the -m option.
+	The USB-ZIP (ZIP Drive) standard requires the presence of a
+	device with a very specific geometry. Specifically, it requires
+	a geometry with 32 sectors and 64 heads. It also requires the presence
+	of a partition table with only a bootable partition in the
+	fourth entry. You can create this type of disk using the -Z option.
 
-	Generally these standard are incompatible, but using the -m
-	and -F options you can create a disk compatible with both the
-	BIOS USB-FDD and USB-HDD standards.
+	Generally these standard are incompatible, but using the -m, -F
+	and -Z options you can create a disk compatible with all these
+	standards.
 
-	To use the -F option the MBR image specified must follow
+	To use the -F option, the MBR image specified must follow
 	the constrains:
 
 	* It must start with a standard FAT 3 bytes jump instruction.
@@ -215,6 +226,7 @@ Multi Standard USB Booting
 
 		:makebootfat -o usb \
 		:	-Y \
+		:	-Z \
 		:	-b ldlinux.bss -m mbrfat.bin -F \
 		:	-c ldlinux.sys -c syslinux.cfg \
 		:	-c linux -c initrd.img \
@@ -224,6 +236,7 @@ Multi Standard USB Booting
 
 		:makebootfat -o usb \
 		:	-E 255 \
+		:	-Z \
 		:	-1 fat12com.bin -2 fat16com.bin -3 fat32chs.bin \
 		:	-m mbrfat.bin -F \
 		:	-c kernel.sys -c command.com \

@@ -172,9 +172,15 @@ next:
 ; Run it
 ;
 		; DS:SI -> active partition table entry
-		; it's always the first one on disks created
-		; with makebootfat
 		mov si, PartitionTable
+		mov cx, 4
+.partsearch:
+		test byte [si],80h
+		jz .partfound
+		add si,byte 16
+		loop .partsearch
+		jmp missing_part
+.partfound:
 
 		; DL -> Drive Number
 		mov dl, [DriveNo]
@@ -231,6 +237,11 @@ missing_os:
 		call print_msg
 		jmp short die
 
+missing_part:
+		mov si,missing_part_msg
+		call print_msg
+		jmp short die
+
 disk_error:
 		mov si,bad_disk_msg
 		call print_msg
@@ -245,6 +256,7 @@ die:
 DriveNo:	db 0
 
 ; Messages
+missing_part_msg db 'Missing partition', 13, 10, 0
 missing_os_msg	db 'Invalid boot sector', 13, 10, 0
 bad_disk_msg	db 'Disk error'
 crlf_msg	db 13, 10, 0
