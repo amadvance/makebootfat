@@ -38,9 +38,8 @@ Options
 	-m, --mbr FILE
 		Specify the MBR sector image to use.
 		If this option is specified a partition table is
-		created on the disk like a harddisk. Otherwise
-		the disk is filled without a partition table like
-		a floppy disk.
+		created on the disk. Otherwise the disk is filled without a
+		partition table like a floppy disk.
 
 	-F, --mbrfat
 		Change the MBR image specified with the -m option to pretend
@@ -65,23 +64,24 @@ Options
 		Enforce the syslinux 2.xx FAT limitations. Syslinux
 		2.xx doesn't support FAT32 at all, and FAT16 with
 		64 and 128 sectors per cluster formats.
-		This option exclude all the FAT formats not supported
+		This option excludes all the FAT formats not supported
 		by syslinux. Please note that it limits the maximum
 		size of filesystem to 1 GB.
 
 	-Y, --syslinux3
 		Enforce the syslinux 3.xx FAT support. Syslinux 3.00
 		supports all the FAT types and sizes but it requires
-		a special customization of the boot sector and of
-		the file `ldlinux.sys'.
-		This option do this customization without the need
+		a special customisation of the boot sector and of
+		the file `ldlinux.sys' (if copied on disk with the -c
+		option).
+		This option does this customisation without the need
 		to use the syslinux installer.
 
 	-Z, --zip
-		If possibile force the ZIP-Disk compatibility setting
+		If possible force the ZIP-Disk compatibility. It sets
 		a geometry of 32 sectors and 64 heads. It also uses the
 		4'th partition entry in the partition table.
-		It allows to boot also in USB-ZIP mode.
+		It's required to boot also in USB-ZIP mode.
 
 	-P, --partition
 		Ensure to operate on a partition and not on a disk.
@@ -188,10 +188,6 @@ Loadlin and FreeDOS
 		:	-c linux -c initrd.img \
 		:	image
 
-	For harddisk you can safely use the fat32lba.bin FAT32 boot
-	sector. For usb device, it's better to use the fat32chs.bin
-	FAT32 boot sector.
-
 Multi Standard USB Booting
 	The BIOS USB boot support is generally differentiated in three
 	categories: USB-HDD, USB-FDD and USB-ZIP.
@@ -209,10 +205,10 @@ Multi Standard USB Booting
 	device with a very specific geometry. Specifically, it requires
 	a geometry with 32 sectors and 64 heads. It also requires the presence
 	of a partition table with only a bootable partition in the
-	fourth entry. You can create this type of disk using the -Z option.
+	fourth entry. You can create this type of disk using the -m and -Z option.
 
-	Generally these standard are incompatible, but using the -m, -F
-	and -Z options you can create a disk compatible with all of these.
+	Generally these standards are incompatible, but using the -m, -F
+	and -Z options you can create a disk compatible with all of them.
 
 	To use the -F option, the MBR image specified must follow
 	the constrains:

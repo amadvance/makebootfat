@@ -48,9 +48,8 @@ This option is always required.
 .B \(hym, \(hy\(hymbr FILE
 Specify the MBR sector image to use.
 If this option is specified a partition table is
-created on the disk like a harddisk. Otherwise
-the disk is filled without a partition table like
-a floppy disk.
+created on the disk. Otherwise the disk is filled without a
+partition table like a floppy disk.
 .TP
 .B \(hyF, \(hy\(hymbrfat
 Change the MBR image specified with the \(hym option to pretend
@@ -75,23 +74,24 @@ the same format used in the IMAGE directory specification.
 Enforce the syslinux 2.xx FAT limitations. Syslinux
 2.xx doesn\(cqt support FAT32 at all, and FAT16 with
 64 and 128 sectors per cluster formats.
-This option exclude all the FAT formats not supported
+This option excludes all the FAT formats not supported
 by syslinux. Please note that it limits the maximum
 size of filesystem to 1 GB.
 .TP
 .B \(hyY, \(hy\(hysyslinux3
 Enforce the syslinux 3.xx FAT support. Syslinux 3.00
 supports all the FAT types and sizes but it requires
-a special customization of the boot sector and of
-the file \(oqldlinux.sys\(cq.
-This option do this customization without the need
+a special customisation of the boot sector and of
+the file \(oqldlinux.sys\(cq (if copied on disk with the \(hyc
+option).
+This option does this customisation without the need
 to use the syslinux installer.
 .TP
 .B \(hyZ, \(hy\(hyzip
-If possibile force the ZIP\(hyDisk compatibility setting
+If possible force the ZIP\(hyDisk compatibility. It sets
 a geometry of 32 sectors and 64 heads. It also uses the
 4\(cqth partition entry in the partition table.
-It allows to boot also in USB\(hyZIP mode.
+It\(cqs required to boot also in USB\(hyZIP mode.
 .TP
 .B \(hyP, \(hy\(hypartition
 Ensure to operate on a partition and not on a disk.
@@ -263,10 +263,6 @@ makebootfat \(hyo /dev/hda1 \(rs
 .PP
 .PD
 .RE
-.PP
-For harddisk you can safely use the fat32lba.bin FAT32 boot
-sector. For usb device, it\(cqs better to use the fat32chs.bin
-FAT32 boot sector.
 .SH MULTI STANDARD USB BOOTING 
 The BIOS USB boot support is generally differentiated in three
 categories: USB\(hyHDD, USB\(hyFDD and USB\(hyZIP.
@@ -284,10 +280,10 @@ The USB\(hyZIP (ZIP Drive) standard requires the presence of a
 device with a very specific geometry. Specifically, it requires
 a geometry with 32 sectors and 64 heads. It also requires the presence
 of a partition table with only a bootable partition in the
-fourth entry. You can create this type of disk using the \(hyZ option.
+fourth entry. You can create this type of disk using the \(hym and \(hyZ option.
 .PP
-Generally these standard are incompatible, but using the \(hym, \(hyF
-and \(hyZ options you can create a disk compatible with all of these.
+Generally these standards are incompatible, but using the \(hym, \(hyF
+and \(hyZ options you can create a disk compatible with all of them.
 .PP
 To use the \(hyF option, the MBR image specified must follow
 the constrains:
