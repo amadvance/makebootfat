@@ -281,7 +281,7 @@ static BOOL SetupDiForEach(SetupDiForEachCallBack* callback, void* context)
  */
 static BOOL CallBackUSBReconnect(void* void_context, HDEVINFO h, SP_DEVINFO_DATA* data, SP_DEVICE_INTERFACE_DATA* idata, SP_DEVICE_INTERFACE_DETAIL_DATA* ddata, const char* enumerator)
 {
-	if (strcmp(enumerator, "USBSTOR") == 0) {
+	if (stricmp(enumerator, "USBSTOR") == 0) {
 		if (strcmp(void_context, ddata->DevicePath) == 0) {
 			if (!SetupDiRestartDevice(h, data))
 				return FALSE;
@@ -303,7 +303,7 @@ static BOOL CallBackUSBFind(void* void_context, HDEVINFO h, SP_DEVINFO_DATA* dat
 {
 	struct find_context* context = (struct find_context*)void_context;
 
-	if (strcmp(enumerator, "USBSTOR") == 0) {
+	if (stricmp(enumerator, "USBSTOR") == 0) {
 		++context->count;
 
 		memset(context->device, 0, sizeof(context->device));
@@ -490,6 +490,12 @@ int disk_close(struct disk_handle* h)
 
 	/* restart the usb device to commit all the changes and to reload the filesystem */
 	/* this is required because the LOCK doesn't work on disks but only on volumes */
+	if (!SetupDiForEach(CallBackUSBReconnect, h->device)) {
+		error_set("Error %d restarting the device %s.", GetLastError(), h->device);
+		return -1;
+	}
+
+	/* do it two times, in some Windows XP it seems required to ensure a correct device restart */
 	if (!SetupDiForEach(CallBackUSBReconnect, h->device)) {
 		error_set("Error %d restarting the device %s.", GetLastError(), h->device);
 		return -1;
