@@ -785,12 +785,7 @@ int disk_read(struct disk_handle* h, unsigned pos, void* data, unsigned size)
 
 	o = SECTOR_SIZE * (off_t)pos;
 
-	if (lseek(h->handle, o, SEEK_SET) != o) {
-		error_set("Error reading the device. %s.", strerror(errno));
-		return -1;
-	}
-
-	s = read(h->handle, data, size * SECTOR_SIZE);
+	s = pread(h->handle, data, size * SECTOR_SIZE, o);
 
 	if (s != size * SECTOR_SIZE) {
 		error_set("Error reading the device. %s.", strerror(errno));
@@ -807,12 +802,7 @@ int disk_write(struct disk_handle* h, unsigned pos, const void* data, unsigned s
 
 	o = SECTOR_SIZE * (off_t)pos;
 
-	if (lseek(h->handle, o, SEEK_SET) != o) {
-		error_set("Error writing the device. %s.", strerror(errno));
-		return -1;
-	}
-
-	s = write(h->handle, data, size * SECTOR_SIZE);
+	s = pwrite(h->handle, data, size * SECTOR_SIZE, o);
 
 	if (s != size * SECTOR_SIZE) {
 		error_set("Error writing the device. %s.", strerror(errno));
