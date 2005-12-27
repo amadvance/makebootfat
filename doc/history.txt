@@ -3,6 +3,24 @@
                             =======================
 
 
+MAKEBOOTFAT VERSION 1.5 2005/12
+===============================
+
+* Minor fixes at the documentation.
+
+
+MAKEBOOTFAT VERSION 1.4 2005/03
+===============================
+
+* Fixed a memory leak.
+
+
+MAKEBOOTFAT VERSION 1.3 2005/02
+===============================
+
+* Minor fixes at the documentation.
+
+
 MAKEBOOTFAT VERSION 1.2 2005/02
 ===============================
 

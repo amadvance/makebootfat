@@ -20,8 +20,10 @@ Options
 		Specify the output device. It must be the device 
 		where you want to setup the filesystem.
 		You can use the special "usb" value to automatically
-		select the USB Mass Storage device connected at
-		the system.
+		select a USB mass storage device connected at
+		the system. If more USB mass storage device are
+		connected at the system the program aborts with and
+		error.
 		This option is always required.
 
 	-b, --boot FILE
@@ -38,8 +40,12 @@ Options
 	-m, --mbr FILE
 		Specify the MBR sector image to use.
 		If this option is specified a partition table is
-		created on the disk. Otherwise the disk is filled without a
-		partition table like a floppy disk.
+		created on the disk. Otherwise the device is filled
+		without a partition table like a floppy disk.
+		Note that if you don't specify the --mbr option because
+		you are working on a partition, you must manually change
+		the partition table to reflect any change you do at the
+		partition type.
 
 	-F, --mbrfat
 		Change the MBR image specified with the -m option to pretend
@@ -72,10 +78,10 @@ Options
 		Enforce the syslinux 3.xx FAT support. Syslinux 3.00
 		supports all the FAT types and sizes but it requires
 		a special customisation of the boot sector and of
-		the file `ldlinux.sys' (if copied on disk with the -c
-		option).
+		the file `ldlinux.sys'.
 		This option does this customisation without the need
-		to use the syslinux installer.
+		to use the syslinux installer if the `ldlinux.sys'
+		file is copied on disk with the -c option.
 
 	-Z, --zip
 		If possible force the ZIP-Disk compatibility. It sets
@@ -148,7 +154,7 @@ Syslinux
 		or missing).
 
 	You must also specify the `ldlinux.bss' boot sector with the -b
-	option and eventually the `mbr.bin' MBR sector with the -m option.
+	option and possibily the `mbr.bin' MBR sector with the -m option.
 	Both the sector images are present in the syslinux package.
 
 	For example:
@@ -239,6 +245,9 @@ Multi Standard USB Booting
 		:	-c autoexec.bat -c loadlin.exe \
 		:	-c linux -c initrd.img \
 		:	image
+
+	Please note that FreeDos has some problems booting
+	from USB. It works only on very few conditions.
 
 Exclusion
 	To exclude some files or directories in the image copy, you

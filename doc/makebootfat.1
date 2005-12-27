@@ -27,8 +27,10 @@ http://advancemame.sourceforge.net/
 Specify the output device. It must be the device
 where you want to setup the filesystem.
 You can use the special \(a"usb\(a" value to automatically
-select the USB Mass Storage device connected at
-the system.
+select a USB mass storage device connected at
+the system. If more USB mass storage device are
+connected at the system the program aborts with and
+error.
 This option is always required.
 .TP
 .B \(hyb, \(hy\(hyboot FILE
@@ -48,8 +50,12 @@ This option is always required.
 .B \(hym, \(hy\(hymbr FILE
 Specify the MBR sector image to use.
 If this option is specified a partition table is
-created on the disk. Otherwise the disk is filled without a
-partition table like a floppy disk.
+created on the disk. Otherwise the device is filled
+without a partition table like a floppy disk.
+Note that if you don\(cqt specify the \(hy\(hymbr option because
+you are working on a partition, you must manually change
+the partition table to reflect any change you do at the
+partition type.
 .TP
 .B \(hyF, \(hy\(hymbrfat
 Change the MBR image specified with the \(hym option to pretend
@@ -82,10 +88,10 @@ size of filesystem to 1 GB.
 Enforce the syslinux 3.xx FAT support. Syslinux 3.00
 supports all the FAT types and sizes but it requires
 a special customisation of the boot sector and of
-the file \(oqldlinux.sys\(cq (if copied on disk with the \(hyc
-option).
+the file \(oqldlinux.sys\(cq.
 This option does this customisation without the need
-to use the syslinux installer.
+to use the syslinux installer if the \(oqldlinux.sys\(cq
+file is copied on disk with the \(hyc option.
 .TP
 .B \(hyZ, \(hy\(hyzip
 If possible force the ZIP\(hyDisk compatibility. It sets
@@ -167,7 +173,7 @@ or missing).
 .RE
 .PP
 You must also specify the \(oqldlinux.bss\(cq boot sector with the \(hyb
-option and eventually the \(oqmbr.bin\(cq MBR sector with the \(hym option.
+option and possibily the \(oqmbr.bin\(cq MBR sector with the \(hym option.
 Both the sector images are present in the syslinux package.
 .PP
 For example:
@@ -369,6 +375,9 @@ makebootfat \(hyo usb \(rs
 .PP
 .PD
 .RE
+.PP
+Please note that FreeDos has some problems booting
+from USB. It works only on very few conditions.
 .SH EXCLUSION 
 To exclude some files or directories in the image copy, you
 can use the \(hyx option using the same path specification

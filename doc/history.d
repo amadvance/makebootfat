@@ -1,6 +1,15 @@
 Name
 	makebootfat - History For makebootfat
 
+makebootfat Version 1.5 2005/12
+	) Minor fixes at the documentation.
+
+makebootfat Version 1.4 2005/03
+	) Fixed a memory leak.
+
+makebootfat Version 1.3 2005/02
+	) Minor fixes at the documentation.
+
 makebootfat Version 1.2 2005/02
 	) Added support for syslinux 3.xx with the new
 		-Y option. This removes the limitation of 1 GB

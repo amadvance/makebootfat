@@ -59,8 +59,6 @@ check-local:
 	cmp check.raw $(srcdir)/test/test.raw
 	echo Success!
 
-# TODO
-
 # Docs
 
 %.1 : %.d

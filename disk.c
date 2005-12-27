@@ -935,6 +935,8 @@ static int cache_flush(struct disk_handle* h)
 		return -1;
 	}
 
+	free(buf);
+
 	return 0;
 }
 
