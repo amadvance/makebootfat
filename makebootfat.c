@@ -342,6 +342,7 @@ void usage() {
 	printf("  " SWITCH_GETOPT_LONG("-O, --oem OEM      ", "-O") "  Volume oem\n");
 	printf("  " SWITCH_GETOPT_LONG("-S, --serial SERIAL", "-S") "  Volume serial\n");
 	printf("  " SWITCH_GETOPT_LONG("-E, --drive DRIVE  ", "-E") "  Drive BIOS number\n");
+	printf("  " SWITCH_GETOPT_LONG("-g, --std-geometry ", "-g") "  Use a standard geometry\n");
 	printf("  " SWITCH_GETOPT_LONG("-v, --verbose      ", "-v") "  Verbose\n");
 	printf("  " SWITCH_GETOPT_LONG("-h, --help         ", "-h") "  Help\n");
 	printf("  " SWITCH_GETOPT_LONG("-V, --version      ", "-V") "  Version\n");
@@ -353,6 +354,7 @@ struct option long_options[] = {
 	{"oem", 1, 0, 'O'},
 	{"serial", 1, 0, 'S'},
 	{"drive", 1, 0, 'E'},
+	{"std-geometry", 0, 0, 'G'},
 
 	{"output", 1, 0, 'o'},
 
@@ -381,7 +383,7 @@ struct option long_options[] = {
 };
 #endif
 
-#define OPTIONS "L:O:S:E:o:ab:1:2:3:m:c:x:t:XYZPDFvihV"
+#define OPTIONS "L:O:S:E:Go:ab:1:2:3:m:c:x:t:XYZPDFvihV"
 
 void string_insert(struct string_list** list, const char* s)
 {
@@ -484,6 +486,7 @@ int main(int argc, char* argv[])
 	int only_disk;
 	int zip_compatibility;
 	int drive;
+	int recompute_geometry;
 	const unsigned syslinux3_sector_max = 65;
 	unsigned syslinux3_sector_map[syslinux3_sector_max];
 	int syslinux3_sector_mac;
@@ -517,6 +520,7 @@ int main(int argc, char* argv[])
 	verbose_context.total = 0;
 	verbose_context.counter = 0;
 	force_time = 0;
+	recompute_geometry = 0;
 
 	opterr = 0;
 
@@ -539,6 +543,9 @@ int main(int argc, char* argv[])
 			break;
 		case 'E' :
 			drive = strtoul(optarg, 0, 0);
+			break;
+		case 'G' :
+			recompute_geometry = 1;
 			break;
 		case 'b' :
 			file_boot12 = optarg;
@@ -648,15 +655,27 @@ int main(int argc, char* argv[])
 			goto err_msg;
 	}
 
-	if (zip_compatibility) {
-		if (h->geometry.size <= 1024 * 64 * 32) {
+	if (zip_compatibility || recompute_geometry) {
+		if (h->geometry.size <= 32*64*1024) {
 			/* A ZIP-Drive requires 32 sectors, 64 heads and the use of the last partition entry */
 			h->geometry.sectors = 32; /* value required by ZIP-Drive */
 			h->geometry.heads = 64; /* value required by ZIP-Drive */
+		} else if (h->geometry.size <= 32*256*1024) {
+			/* ZIP-Disk like geometry */
+			h->geometry.sectors = 32;
+			h->geometry.heads = 256;
+		} else {
+			/* maximum size geometry */
+			h->geometry.sectors = 63;
+			h->geometry.heads = 256;
+		}
+		/* compute the cylinders number */
+		h->geometry.cylinders = h->geometry.size / (h->geometry.sectors * h->geometry.heads);
+		/* recompute the size */
+		h->geometry.size = h->geometry.sectors * h->geometry.heads * h->geometry.cylinders;
+
+		if (zip_compatibility) {
 			part_entry = 3; /* ZIP-Drive requires to use the last partition entry */
-			h->geometry.cylinders = h->geometry.size / (h->geometry.sectors * h->geometry.heads);
-			/* recompute the size, it may be a little smaller */
-			h->geometry.size = h->geometry.sectors * h->geometry.heads * h->geometry.cylinders;
 		}
 	}
 

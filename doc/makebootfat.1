@@ -99,6 +99,12 @@ a geometry of 32 sectors and 64 heads. It also uses the
 4\(cqth partition entry in the partition table.
 It\(cqs required to boot also in USB\(hyZIP mode.
 .TP
+.B \(hyG, \(hy\(hystd
+Use standard geometry values for the device. Usually the geometry
+reported for USB device is completly fake, and using standard values
+is a better choice. It\(cqs like the \(hyZ option but without using the
+the 4\(cqth partition entry.
+.TP
 .B \(hyP, \(hy\(hypartition
 Ensure to operate on a partition and not on a disk.
 .TP

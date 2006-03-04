@@ -148,6 +148,16 @@ It's required to boot also in USB-ZIP mode.
 </table>
 <table width="100%" border="0" cellspacing="0" cellpadding="2">
 <tr valign="top" align="left"><td><strong>
+-G, --std
+</strong></td></tr><tr><td>
+Use standard geometry values for the device. Usually the geometry
+reported for USB device is completly fake, and using standard values
+is a better choice. It's like the -Z option but without using the
+the 4'th partition entry.
+</td></tr>
+</table>
+<table width="100%" border="0" cellspacing="0" cellpadding="2">
+<tr valign="top" align="left"><td><strong>
 -P, --partition
 </strong></td></tr><tr><td>
 Ensure to operate on a partition and not on a disk.

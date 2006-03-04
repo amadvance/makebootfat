@@ -1,7 +1,9 @@
 Name
 	makebootfat - History For makebootfat
 
-makebootfat Version 1.5 2005/12
+makebootfat Version 1.5 2006/03
+	) Added a new -G option to recompute the geometry values to standard
+		values overrinding the system reported values.
 	) Minor fixes at the documentation.
 
 makebootfat Version 1.4 2005/03

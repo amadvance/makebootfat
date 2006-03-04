@@ -89,6 +89,12 @@ Options
 		4'th partition entry in the partition table.
 		It's required to boot also in USB-ZIP mode.
 
+	-G, --std
+		Use standard geometry values for the device. Usually the geometry
+		reported for USB device is completly fake, and using standard values
+		is a better choice. It's like the -Z option but without using the
+		the 4'th partition entry.
+
 	-P, --partition
 		Ensure to operate on a partition and not on a disk.
 
