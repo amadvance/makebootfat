@@ -77,9 +77,9 @@ Options
 	-Y, --syslinux3
 		Enforce the syslinux 3.xx FAT support. Syslinux 3.00
 		supports all the FAT types and sizes but it requires
-		a special customisation of the boot sector and of
+		a special customization of the boot sector and of
 		the file `ldlinux.sys'.
-		This option does this customisation without the need
+		This option does this customization without the need
 		to use the syslinux installer if the `ldlinux.sys'
 		file is copied on disk with the -c option.
 
@@ -91,7 +91,7 @@ Options
 
 	-G, --std
 		Use standard geometry values for the device. Usually the geometry
-		reported for USB device is completly fake, and using standard values
+		reported for USB device is completely fake, and using standard values
 		is a better choice. It's like the -Z option but without using the
 		the 4'th partition entry.
 
@@ -160,7 +160,7 @@ Syslinux
 		or missing).
 
 	You must also specify the `ldlinux.bss' boot sector with the -b
-	option and possibily the `mbr.bin' MBR sector with the -m option.
+	option and possibly the `mbr.bin' MBR sector with the -m option.
 	Both the sector images are present in the syslinux package.
 
 	For example:

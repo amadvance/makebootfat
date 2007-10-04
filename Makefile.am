@@ -110,7 +110,7 @@ distwindows: $(DISTDOS_ROOT) $(DISTDOS_DOC)
 	rm -r tmp
 
 DISTWEB = \
-	doc/makebootfat.hh
+	doc/makebootfat.hh doc/history.hh
 
 web: $(DISTWEB)
 

@@ -728,7 +728,7 @@ int main(int argc, char* argv[])
 		printf("device_start %d [sectors]\n", h->geometry.start);
 		printf("device_size %d [sectors], %d [MB]\n", h->geometry.size, h->geometry.size / 2048);
 		printf("device_geometry %d/%d/%d [cylinders/heads/sectors]", h->geometry.cylinders, h->geometry.heads, h->geometry.sectors);
-		if (h->geometry.sectors == 32 && h->geometry.heads == 64) {
+		if (h->geometry.sectors == 32 && h->geometry.heads == 64 && part_entry == 3) {
 			printf(" (ZIP-Drive compatible)");
 		}
 		printf("\n");
