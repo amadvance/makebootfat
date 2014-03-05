@@ -31,7 +31,7 @@ maintainer-clean-local:
 EXTRA_DIST = \
 	autogen.sh \
 	noautomake.sh \
-	configure.windows \
+	configure.windows-x86 \
 	README AUTHORS HISTORY INSTALL COPYING \
 	doc/makebootfat.1 \
 	doc/makebootfat.d doc/history.d doc/readme.d doc/authors.d doc/install.d \
@@ -101,12 +101,12 @@ DISTDOS_DOC = \
 	doc/readme.html doc/authors.html doc/history.html 
 
 distwindows: $(DISTDOS_ROOT) $(DISTDOS_DOC)
-	rm -f $(PACKAGE)-$(VERSION)-windows-pentium.zip
+	rm -f $(PACKAGE)-$(VERSION)-windows-x86.zip
 	mkdir tmp
 	cp $(DISTDOS_ROOT) tmp
 	mkdir tmp/doc
 	cp $(DISTDOS_DOC) tmp/doc
-	cd tmp && zip -r ../$(PACKAGE)-$(VERSION)-windows-pentium.zip *
+	cd tmp && zip -r ../$(PACKAGE)-$(VERSION)-windows-x86.zip *
 	rm -r tmp
 
 DISTWEB = \
