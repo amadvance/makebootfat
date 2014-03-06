@@ -13,11 +13,6 @@ doc/*.1
 doc/*.html
 doc/*.txt
 
-# others
-resource/
-check/
-check.raw
-
 # autotools
 Makefile
 Makefile.in
@@ -41,4 +36,9 @@ stamp-h1
 *.dst
 *.epr
 
+# others
+resource/
+check/
+check.raw
+archive/
 

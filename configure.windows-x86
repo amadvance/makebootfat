@@ -1,7 +1,9 @@
 ./configure \
-	CFLAGS="-O2 -march=i586" \
-	CXXFLAGS="-O2 -march=i586" \
+	CFLAGS="-O2 -march=i686" \
+	CXXFLAGS="-O2 -march=i686" \
 	LDFLAGS="-s" \
 	LIBS="-lsetupapi" \
-	--host=i686-pc-mingw32 --build=`./config.guess` $@
+	--host=i686-w64-mingw32.static --build=`./config.guess` $@
+
+
 

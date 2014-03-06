@@ -30,7 +30,6 @@ maintainer-clean-local:
 
 EXTRA_DIST = \
 	autogen.sh \
-	noautomake.sh \
 	configure.windows-x86 \
 	README AUTHORS HISTORY INSTALL COPYING \
 	doc/makebootfat.1 \

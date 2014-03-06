@@ -1,6 +1,9 @@
 Name
 	makebootfat - History For makebootfat
 
+makebootfat Version 1.6 2014/03
+	) Updated to the new autoconf/git standard.
+
 makebootfat Version 1.5 2012/12
 	) Added a new -G option to recompute the geometry values to standard
 		values overriding the system reported values.
