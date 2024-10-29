@@ -8,12 +8,11 @@ Description
 	This utility creates a bootable FAT filesystem and
 	populates it with files and boot tools.
 
-	It is mainly designed to create bootable USB and
-	Fixed disk for the AdvanceCD project.
+	It is mainly designed to create bootable USB.
 
-	The official site of AdvanceCD and makebootfat is:
+	The official site of makebootfat is:
 
-		+http://advancemame.sourceforge.net/
+		+https://github.com/amadvance/makebootfat
 
 Options
 	-o, --output DEVICE

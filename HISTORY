@@ -3,6 +3,13 @@
                             =======================
 
 
+MAKEBOOTFAT VERSION 1.6 2024/10
+===============================
+
+* Use /proc/mounts instead of /etc/mtab
+* Updated wth new autoconf.
+
+
 MAKEBOOTFAT VERSION 1.5 2012/12
 ===============================
 
