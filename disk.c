@@ -646,9 +646,9 @@ static int os_checkmount(const char* dev)
 	FILE* f;
 	struct mntent* m;
 
-	f = setmntent("/etc/mtab", "r");
+	f = setmntent("/proc/mounts", "r");
 	if (!f) {
-		error_set("Error accessing /etc/mtab. %s.", strerror(errno));
+		error_set("Error accessing /proc/mounts. %s.", strerror(errno));
 		return -1;
 	}
 
