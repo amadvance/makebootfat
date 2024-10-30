@@ -1,0 +1,416 @@
+.TH "Makebootfat Bootable FAT Disk Creation" 1
+.SH NAME
+makebootfat \- Makebootfat Bootable FAT Disk Creation
+.SH SYNOPSIS 
+makebootfat [options] IMAGE
+.PD 0
+.PP
+.PD
+.SH DESCRIPTION 
+This utility creates a bootable FAT filesystem and
+populates it with files and boot tools.
+.PP
+It is mainly designed to create bootable USB.
+.PP
+The official site of makebootfat is:
+.PP
+.RS 4
+https://github.com/amadvance/makebootfat
+.PD 0
+.PP
+.PD
+.RE
+.SH OPTIONS 
+.TP
+.B \-o, \-\-output DEVICE
+Specify the output device. It must be the device
+where you want to setup the filesystem.
+You can use the special \[dq]usb\[dq] value to automatically
+select a USB mass storage device connected at
+the system. If more USB mass storage device are
+connected at the system the program aborts with and
+error.
+This option is always required.
+.TP
+.B \-b, \-\-boot FILE
+.TP
+.B \-1, \-\-boot\-fat12 FILE
+.TP
+.B \-2, \-\-boot\-fat16 FILE
+.TP
+.B \-3, \-\-boot\-fat32 FILE
+Specify the FAT boot sector images to use. The \-b option
+uses the same sector for all the FAT types. The other
+options can be used to specify a different sector for
+different FAT types. The FAT types for which a boot sector
+is not specified are not used.
+This option is always required.
+.TP
+.B \-m, \-\-mbr FILE
+Specify the MBR sector image to use.
+If this option is specified a partition table is
+created on the disk. Otherwise the device is filled
+without a partition table like a floppy disk.
+Note that if you don\'t specify the \-\-mbr option because
+you are working on a partition, you must manually change
+the partition table to reflect any change you do at the
+partition type.
+.TP
+.B \-F, \-\-mbrfat
+Change the MBR image specified with the \-m option to pretend
+to be a FAT filesystem starting from the first sector of
+the disk. This allows booting from USB\-FDD (Floppy Disk Drive)
+also using a partition table generally required by USB\-HDD
+(Hard Disk Drive).
+The MBR image specified with the \-m option must have
+executable code positioned like a FAT boot sector. You
+can use the included \`mbrfat.bin\' file.
+.TP
+.B \-c, \-\-copy FILE
+Copy the specified file in the root directory of the disk.
+The file is copied using the readonly attribute.
+.TP
+.B \-x, \-\-exclude FILE
+Exclude the specified files and subdirectories in the
+IMAGE directory to copy. The path must be specified using
+the same format used in the IMAGE directory specification.
+.TP
+.B \-X, \-\-syslinux2
+Enforce the syslinux 2.xx FAT limitations. Syslinux
+2.xx doesn\'t support FAT32 at all, and FAT16 with
+64 and 128 sectors per cluster formats.
+This option excludes all the FAT formats not supported
+by syslinux. Please note that it limits the maximum
+size of filesystem to 1 GB.
+.TP
+.B \-Y, \-\-syslinux3
+Enforce the syslinux 3.xx FAT support. Syslinux 3.00
+supports all the FAT types and sizes but it requires
+a special customization of the boot sector and of
+the file \`ldlinux.sys\'.
+This option does this customization without the need
+to use the syslinux installer if the \`ldlinux.sys\'
+file is copied on disk with the \-c option.
+.TP
+.B \-Z, \-\-zip
+If possible force the ZIP\-Disk compatibility. It sets
+a geometry of 32 sectors and 64 heads. It also uses the
+4\'th partition entry in the partition table.
+It\'s required to boot also in USB\-ZIP mode.
+.TP
+.B \-G, \-\-std
+Use standard geometry values for the device. Usually the geometry
+reported for USB device is completely fake, and using standard values
+is a better choice. It\'s like the \-Z option but without using the
+the 4\'th partition entry.
+.TP
+.B \-P, \-\-partition
+Ensure to operate on a partition and not on a disk.
+.TP
+.B \-D, \-\-disk
+Ensure to operate on a disk and not on a partition.
+.TP
+.B \-L, \-\-label LABEL
+Set the FAT label. The label is a string of 11 chars.
+.TP
+.B \-O, \-\-oem OEM
+Set the FAT OEM name. The OEM name is a string of 11 chars.
+.TP
+.B \-S, \-\-serial SERIAL
+Set the FAT serial number. The serial number is a 32 bit
+unsigned integer.
+.TP
+.B \-E, \-\-drive DRIVE
+Set the BIOS drive to setup in the FAT boot sector.
+Generally this value is ignored by boot sectors, with
+the exception of the FAT12 and FAT16 FreeDOS boot sectors
+that require the correct value or the value 255 to force
+auto detection.
+.TP
+.B \-v, \-\-verbose
+Print some information on the device and on the filesystem
+created.
+.TP
+.B \-i, \-\-interactive
+Show the errors in a message box. Only for Windows.
+.TP
+.B \-h, \-\-help
+Print a short help.
+.TP
+.B \-V, \-\-version
+Print the version number.
+.TP
+.B IMAGE
+Directory image to copy on the disk. All the files
+and subdirectories present in this directory
+are copied on the disk.
+.SH DISKS AND PARTITIONS NAMES 
+In Linux disk devices are named /dev/hdX or /dev/sdX where X
+is a letter. Partition devices are named /dev/hdXN or /dev/sdXN
+where X is a letter and N a digit.
+.PP
+In Windows disk devices are named \\\\.\\PhysicalDriveN where N is
+a digit. Partition devices are named \\\\.\\X: where X is a letter,
+but sometimes \\\\.\\X: is a disk and not a partition, for example on
+floppies and on all the USB Mass Storage devices without a
+partition table.
+.SH SYSLINUX 
+To make a bootable FAT using syslinux you must use
+the \-X option for syslinux version 2.xx or the \-Y
+option for syslinux version 3.xx. You must also copy in
+the root directory of the disk the files:
+.RS 0
+.PD 0
+.HP 4
+.I ldlinux.sys
+The syslinux loader.
+.HP 4
+.I syslinux.cfg
+The syslinux configuration file.
+.HP 4
+.I linux
+The Linux kernel image  (the file name may be different).
+.HP 4
+.I initrd.img
+The initrd filesystem (the file name may be different
+or missing).
+.PD
+.RE
+.PP
+You must also specify the \`ldlinux.bss\' boot sector with the \-b
+option and possibly the \`mbr.bin\' MBR sector with the \-m option.
+Both the sector images are present in the syslinux package.
+.PP
+For example:
+.PP
+.RS 4
+makebootfat \-o usb \\
+.PD 0
+.PP
+.PD
+	\-Y \\
+.PD 0
+.PP
+.PD
+	\-b ldlinux.bss \-m mbr.bin \\
+.PD 0
+.PP
+.PD
+	\-c ldlinux.sys \-c syslinux.cfg \\
+.PD 0
+.PP
+.PD
+	\-c linux \-c initrd.img \\
+.PD 0
+.PP
+.PD
+	image
+.PD 0
+.PP
+.PD
+.RE
+.SH LOADLIN AND FREEDOS 
+To make a bootable FAT using loadlin and FreeDOS you must copy
+in the root directory of the disk the files:
+.RS 0
+.PD 0
+.HP 4
+.I kernel.sys
+The FreeDOS kernel. Remember to use the \[dq]32\[dq] kernel
+version to support FAT32.
+.HP 4
+.I command.com
+The FreeDOS shell.
+.HP 4
+.I autoexec.bat
+Used to start loadlin.
+.HP 4
+.I loadlin.exe
+The loadlin executable.
+.HP 4
+.I linux
+The Linux kernel image  (the file name may be different).
+.HP 4
+.I initrd.img
+The initrd filesystem (the file name may be different
+or missing).
+.PD
+.RE
+.PP
+You must also specify the FreeDOS boot sectors available on the
+FreeDOS \`sys\' source package with the \-1, \-2, \-3 option.
+For the MBR you can use the sectors image available on the FreeDOS
+\`fdisk\' source package.
+.PP
+For example:
+.PP
+.RS 4
+makebootfat \-o /dev/hda1 \\
+.PD 0
+.PP
+.PD
+	\-E 255 \\
+.PD 0
+.PP
+.PD
+	\-1 fat12com.bin \-2 fat16com.bin \-3 fat32lba.bin \\
+.PD 0
+.PP
+.PD
+	\-c kernel.sys \-c command.com \\
+.PD 0
+.PP
+.PD
+	\-c autoexec.bat \-c loadlin.exe \\
+.PD 0
+.PP
+.PD
+	\-c linux \-c initrd.img \\
+.PD 0
+.PP
+.PD
+	image
+.PD 0
+.PP
+.PD
+.RE
+.SH MULTI STANDARD USB BOOTING 
+The BIOS USB boot support is generally differentiated in three
+categories: USB\-HDD, USB\-FDD and USB\-ZIP.
+.PP
+The USB\-HDD (Hard Disk Drive) standard is the preferred choice and
+it requires the presence of a partition table in the first sector
+of the disk. You can create this type of disk using the \-m option.
+.PP
+The USB\-FDD (Floppy Disk Drive) standard requires the presence of
+a filesystem starting from the first sector of the disk without
+a partition table.
+You can create this type of disk without using the \-m option.
+.PP
+The USB\-ZIP (ZIP Drive) standard requires the presence of a
+device with a very specific geometry. Specifically, it requires
+a geometry with 32 sectors and 64 heads. It also requires the presence
+of a partition table with only a bootable partition in the
+fourth entry. You can create this type of disk using the \-m and \-Z option.
+.PP
+Generally these standards are incompatible, but using the \-m, \-F
+and \-Z options you can create a disk compatible with all of them.
+.PP
+To use the \-F option, the MBR image specified must follow
+the constrains:
+.PD 0
+.IP \(bu
+It must start with a standard FAT 3 bytes jump instruction.
+.IP \(bu
+It must have the bytes from address 3 to 89 (included) unused.
+.PD
+.PP
+And example of such image is in the \`mbrfat.bin\' file.
+.PP
+For example to create a syslinux image:
+.PP
+.RS 4
+makebootfat \-o usb \\
+.PD 0
+.PP
+.PD
+	\-Y \\
+.PD 0
+.PP
+.PD
+	\-Z \\
+.PD 0
+.PP
+.PD
+	\-b ldlinux.bss \-m mbrfat.bin \-F \\
+.PD 0
+.PP
+.PD
+	\-c ldlinux.sys \-c syslinux.cfg \\
+.PD 0
+.PP
+.PD
+	\-c linux \-c initrd.img \\
+.PD 0
+.PP
+.PD
+	image
+.PD 0
+.PP
+.PD
+.RE
+.PP
+and for a FreeDOS and loadlin image:
+.PP
+.RS 4
+makebootfat \-o usb \\
+.PD 0
+.PP
+.PD
+	\-E 255 \\
+.PD 0
+.PP
+.PD
+	\-Z \\
+.PD 0
+.PP
+.PD
+	\-1 fat12com.bin \-2 fat16com.bin \-3 fat32chs.bin \\
+.PD 0
+.PP
+.PD
+	\-m mbrfat.bin \-F \\
+.PD 0
+.PP
+.PD
+	\-c kernel.sys \-c command.com \\
+.PD 0
+.PP
+.PD
+	\-c autoexec.bat \-c loadlin.exe \\
+.PD 0
+.PP
+.PD
+	\-c linux \-c initrd.img \\
+.PD 0
+.PP
+.PD
+	image
+.PD 0
+.PP
+.PD
+.RE
+.PP
+Please note that FreeDos has some problems booting
+from USB. It works only on very few conditions.
+.SH EXCLUSION 
+To exclude some files or directories in the image copy, you
+can use the \-x option using the same path specification
+which are you using for the image directory.
+.PP
+For example, if you need to exclude the \`isolinux\' and
+\`syslinux\' subdirectories from the \`image\' directory
+you can use the command:
+.PP
+.RS 4
+makebootfat ... \\
+.PD 0
+.PP
+.PD
+	\-x image/isolinux \\
+.PD 0
+.PP
+.PD
+	\-x image/syslinux \\
+.PD 0
+.PP
+.PD
+	image
+.PD 0
+.PP
+.PD
+.RE
+.SH COPYRIGHT 
+This file is Copyright (C) 2004, 2005 Andrea Mazzoleni
+.SH SEE ALSO 
+syslinux(1), mkdosfs(1), dosfsck(1)

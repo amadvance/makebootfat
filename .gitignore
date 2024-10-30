@@ -9,7 +9,6 @@ makebootfat
 
 # docs
 doc/*.hh
-doc/*.1
 doc/*.html
 doc/*.txt
 
